@@ -1,27 +1,32 @@
 {
-	"name": "openimu-core-libraries",
- 	"version": "0.0.0",
- 	"description": "Open Source Embedded IMU and Navigation Library",
- 	"build": {
- 		"flags": [
- 			"-I CLI/include",
- 			"-I BSP/include",
- 			"-I CSL",
- 			"-I CSL/include",
-			"-I GPS/include",
-			"-I Math/include",
-			"-I Platform/include",
-			"-I Platform",
-			"-I Algorithm/include",
-			"-I FreeRtos/portable/GCC/ARM_CM4F",
-			"-I FreeRtos/CMSIS_RTOS",
-			"-I FreeRtos/include",
-			"-I Math",
-			"-I UART/include",
-			"-I SPI/include",
-			"-L Platform",
-			"-l libPlatform",
-			"-I Filter/include"
- 		]
- 	}
+  "name": "openimu-core-libraries",
+  "version": "0.0.0",
+  "description": "Open Source Embedded IMU and Navigation Library",
+  "keywords": "sensors, IMU, INS, AI, automotive, navigation",
+  "repository":
+  {
+    "type": "git",
+    "url": "https://github.com/Aceinna/openimu-core.git",
+    "branch": "master"
+  },  
+  "build": {
+    "flags": [
+      "-I CLI/include",
+      "-I BSP/include",
+      "-I CSL",
+      "-I CSL/include",
+      "-I GPS/include",
+      "-I Math/include",
+      "-I Platform",
+      "-I Algorithm/include",
+      "-I FreeRtos/include",
+      "-I Math",
+      "-I UART/include",
+      "-I Filter/include",
+      "-L Platform",
+      "-l libPlatform"      
+    ],
+    "libArchive": false,
+    "platforms": "aceinna_imu"
+  }
  }
