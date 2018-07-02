@@ -3,7 +3,7 @@
 ![Aceinna Logo](https://github.com/Aceinna/openimu-core/blob/master/aceinna.png)
 
 ## Description
-OpenIMU core library.
+OpenIMU core library for (Aceinna Navigation Platform)[https://github.com/Aceinna/platform-aceinna_imu]: open-source, embedded development platform for Aceinna IMU hardware. Run custom algorithms and navigation code on Aceinna IMU/INS hardware.
 
 
 ### License
@@ -29,4 +29,3 @@ See the License for the specific language governing permissions and
 limitations under the License.
 
 
-   
