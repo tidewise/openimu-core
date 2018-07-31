@@ -1,6 +1,6 @@
 {
   "name": "openimu-core-libraries",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Open Source Embedded IMU and Navigation Library",
   "keywords": "sensors, IMU, INS, AI, automotive, navigation",
   "repository":
