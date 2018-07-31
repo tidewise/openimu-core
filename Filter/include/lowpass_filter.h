@@ -29,14 +29,23 @@ limitations under the License.
 #ifndef LOWPASS_FILTER_H
 #define LOWPASS_FILTER_H
 
-#define BWF_LOWPASS_3RD_2        0
-#define BWF_LOWPASS_3RD_5        1
-#define BWF_LOWPASS_3RD_10       2
-#define BWF_LOWPASS_3RD_20       3
+#define BWF_LOWPASS_NONE         0
+
+#define BWF_LOWPASS_3RD_2        1
+#define BWF_LOWPASS_3RD_5        2
+#define BWF_LOWPASS_3RD_10       3
 #define BWF_LOWPASS_3RD_25       4
-#define BWF_LOWPASS_3RD_40       5
-#define BWF_LOWPASS_3RD_50       6
-#define BWF_LOWPASS_3RD_INF      7
+#define BWF_LOWPASS_3RD_50       5
+#define BWF_LOWPASS_3RD_100      6
+
+#define BWF_LOWPASS_4TH_OFFSET   9  // should be equal to 2HZ index
+#define BWF_LOWPASS_4TH_2        9
+#define BWF_LOWPASS_4TH_5        10
+#define BWF_LOWPASS_4TH_10       11
+#define BWF_LOWPASS_4TH_25       12
+#define BWF_LOWPASS_4TH_50       13
+#define BWF_LOWPASS_4TH_100      14
+
 
 #define BWF_LOWPASS_DATA_RATE_400       0
 #define BWF_LOWPASS_DATA_RATE_800       1

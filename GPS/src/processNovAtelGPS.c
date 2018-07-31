@@ -34,7 +34,7 @@ limitations under the License.
 #include "driverGPS.h"
 #include "NovAtelPacketFormats.h"
 #include "filter.h"
-#include "algorithm.h"
+#include "BITStatus.h"
 
 #define CRC32_POLYNOMIAL 0xEDB88320
 
@@ -172,13 +172,13 @@ void _parseBestPosB_Fast(logBestPosB   *bestPosB,
     GPSData->updateFlagForEachCall |= 1 << GOT_GGA_MSG;
     if (bestPosB->sol_status != 0) {  // zero is good fix anything else is enumeratio for bad fix
         GPSData->GPSFix = 0;// PosVelType
-        gAlgorithm.bitStatus.hwStatus.bit.unlockedInternalGPS = 1; // locked
-        gAlgorithm.bitStatus.swStatus.bit.noGPSTrackReference = 1; // no GPS track
+        gBitStatus.hwStatus.bit.unlockedInternalGPS = 1; // locked
+        gBitStatus.swStatus.bit.noGPSTrackReference = 1; // no GPS track
         gGpsDataPtr->HDOP = 21.0f; // force to above threshold
     } else {
         GPSData->GPSFix = bestPosB->pos_type;
-        gAlgorithm.bitStatus.hwStatus.bit.unlockedInternalGPS = 0; // locked
-        gAlgorithm.bitStatus.swStatus.bit.noGPSTrackReference = 0; // GPS track
+        gBitStatus.hwStatus.bit.unlockedInternalGPS = 0; // locked
+        gBitStatus.swStatus.bit.noGPSTrackReference = 0; // GPS track
         gGpsDataPtr->HDOP = 9.0f; // force to below threshold
     }
 
@@ -266,12 +266,12 @@ void _parseBestPosB(char           *completeMessage,
 
 	if (SolStatus[0] != 0) { // zero is good fix anything else is enumeratio for bad fix
         gGpsDataPtr->HDOP = 21.0f; // force to above threshold
-        gAlgorithm.bitStatus.hwStatus.bit.unlockedInternalGPS = 1; // not locked
-        gAlgorithm.bitStatus.swStatus.bit.noGPSTrackReference = 1; // no GPS track
+        gBitStatus.hwStatus.bit.unlockedInternalGPS = 1; // not locked
+        gBitStatus.swStatus.bit.noGPSTrackReference = 1; // no GPS track
     } else  {
         gGpsDataPtr->HDOP = 9.0f; // force to below threshold
-        gAlgorithm.bitStatus.hwStatus.bit.unlockedInternalGPS = 0; // locked
-        gAlgorithm.bitStatus.swStatus.bit.noGPSTrackReference = 0; // GPS track
+        gBitStatus.hwStatus.bit.unlockedInternalGPS = 0; // locked
+        gBitStatus.swStatus.bit.noGPSTrackReference = 0; // GPS track
     }
 	GPSData->GPSFix = SolStatus[0];
 
@@ -320,13 +320,13 @@ void _parseBestVelB_Fast(logBestVelB   *bestVelB,
     GPSData->updateFlagForEachCall |= 1 << GOT_VTG_MSG;
     if (bestVelB->sol_status != 0) { // zero is good fix anything else is enumeratio for bad fix
         GPSData->GPSFix = bestVelB->vel_type;
-        gAlgorithm.bitStatus.hwStatus.bit.unlockedInternalGPS = 1; // not locked
-        gAlgorithm.bitStatus.swStatus.bit.noGPSTrackReference = 1; // no GPS track
+        gBitStatus.hwStatus.bit.unlockedInternalGPS = 1; // not locked
+        gBitStatus.swStatus.bit.noGPSTrackReference = 1; // no GPS track
         gGpsDataPtr->HDOP = 21.0f; //
     } else {
         GPSData->GPSFix = 0;
-        gAlgorithm.bitStatus.hwStatus.bit.unlockedInternalGPS = 0; // not locked
-        gAlgorithm.bitStatus.swStatus.bit.noGPSTrackReference = 0; // GPS track
+        gBitStatus.hwStatus.bit.unlockedInternalGPS = 0; // not locked
+        gBitStatus.swStatus.bit.noGPSTrackReference = 0; // GPS track
         gGpsDataPtr->HDOP = 9.0f; //
     }
 
@@ -364,12 +364,12 @@ void _parseBestVelB(char           *completeMessage,
 
     if (SolStatus[0] != 0) { // zero is good fix anything else is enumeratio for bad fix
         gGpsDataPtr->HDOP = 21.0f; //
-        gAlgorithm.bitStatus.hwStatus.bit.unlockedInternalGPS = 1; // not locked
-        gAlgorithm.bitStatus.swStatus.bit.noGPSTrackReference = 1; // GPS track
+        gBitStatus.hwStatus.bit.unlockedInternalGPS = 1; // not locked
+        gBitStatus.swStatus.bit.noGPSTrackReference = 1; // GPS track
     } else {
         gGpsDataPtr->HDOP = 9.0f; //
-        gAlgorithm.bitStatus.hwStatus.bit.unlockedInternalGPS = 0; // not locked
-        gAlgorithm.bitStatus.swStatus.bit.noGPSTrackReference = 0; // GPS track
+        gBitStatus.hwStatus.bit.unlockedInternalGPS = 0; // not locked
+        gBitStatus.swStatus.bit.noGPSTrackReference = 0; // GPS track
     }
 	GPSData->GPSFix = SolStatus[0];
 

@@ -11,14 +11,17 @@
   },
   "build": {
     "flags": [
-      "-I CLI/include",
+      "-I Common/include",
       "-I BSP/include",
+      "-I BSP",
       "-I CSL",
       "-I CSL/include",
       "-I GPS/include",
+      "-I GPS",
       "-I Math/include",
       "-I Platform",
       "-I Algorithm/include",
+      "-I Algorithm",
       "-I FreeRtos/include",
       "-I Math",
       "-I UART/include",

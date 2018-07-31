@@ -31,8 +31,7 @@ limitations under the License.
 #include "gps.h"
 #include "osapi.h"
 #include "platformAPI.h"
-#include "timer.h"    // for TimeNow()
-#include "algorithm.h"
+#include "algorithmAPI.h"
 
 /** ****************************************************************************
  * @name TaskGps
@@ -74,7 +73,7 @@ void TaskGps(void)
         // could wait on a message from the data acquistion
         OS_Delay(5000);
 
-        if (gAlgorithm.Behavior.bit.useGPS)   // useGPS   so far only external GPS
+        if (gpsUsedInAlgorithm())   // useGPS   so far only external GPS
         {
             GPSHandler();
             uart_BIT(GPS_UART);  // 
@@ -87,9 +86,9 @@ void TaskGps(void)
                 gGpsDataPtr->gpsValid = true;
             }
 
-            if (((TimeNow() / 1000) - updateHDOP) > 600) {
+            if (((getSystemTime() / 1000) - updateHDOP) > 600) {
                 gGpsDataPtr->HDOP = 50.0;
-                updateHDOP = (TimeNow() / 1000);
+                updateHDOP = (getSystemTime() / 1000);
                 pollSiRFVersionMsg();
                 pollSirfCnt++;
             }

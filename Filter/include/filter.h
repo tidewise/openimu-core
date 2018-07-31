@@ -66,6 +66,7 @@ typedef enum  {
       FIR_10HZ_LPF        = 0x05,  // Bartlett LPF 10HZ
       FIR_05HZ_LPF        = 0x06,  // Bartlett LPF 5HZ
 // user-selectable filter types
+      IIR_100HZ_LPF       = 0x20, // Butterworth LPF 100HZ
       IIR_50HZ_LPF        = 0x30, // Butterworth LPF 50HZ
       IIR_20HZ_LPF        = 0x40, // Butterworth LPF 20HZ
       IIR_10HZ_LPF        = 0x50, // Butterworth LPF 10HZ

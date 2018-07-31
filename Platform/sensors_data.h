@@ -1,6 +1,7 @@
-/******************************************************************************
- * @file commands.h
-*******************************************************************************/
+/** ***************************************************************************
+ * @file   sensors.h
+ ******************************************************************************/
+
 /*******************************************************************************
 Copyright 2018 ACEINNA, INC
 
@@ -17,17 +18,21 @@ See the License for the specific language governing permissions and
 limitations under the License.
 *******************************************************************************/
 
-#ifndef COMMANDS_H
-#define _COMMANDS_H
+#ifndef SENSORS_DATA_H
+#define SENSORS_DATA_H
 
-void CmdVersion(uint32_t data);
-void CmdUsartBaudRate( uint32_t data );
-void CmdReadAccelerometer(uint32_t data);
-void CmdReadAccelTemp(uint32_t data);
-void CmdReadGyro(uint32_t data);
-void CmdReadGyroTemp(uint32_t data);
-void CmdGpsRead(uint32_t data);
-void CmdReadMagnetometer(uint32_t data);
+#include <stdint.h>
+#include "Indices.h"
+
+/* Global Sebsors Data structure  */
+typedef struct {
+    uint32_t            rawSensors[N_RAW_SENS];
+    double              scaledSensors[N_RAW_SENS]; /// g's, rad/s, G, deg C, (body frame)
+    int32_t             scaledSensors_q27[N_RAW_SENS];  // g's, rad/s, G, deg C, (body frame)
+}sensors_data_t;
+
+extern sensors_data_t gSensorsData;
 
 
-#endif /* COMMANDS_H */
+#endif // SENSORS_DATA 
+

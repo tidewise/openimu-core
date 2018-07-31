@@ -149,6 +149,7 @@ extern void DebugPrintFloat(const char *str, float f, int sigDigits);
 extern void DebugPrintEndline();
 
 int  tprintf(char *format, ...);
+void InitDebugSerialCommunication( uint32_t baudRate );
 
 
 

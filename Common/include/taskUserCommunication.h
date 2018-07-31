@@ -1,12 +1,17 @@
 /** ***************************************************************************
- * @file commandLine.h DEBUG parser functions
+ * @file   taskUserCommunication.h
  *
  * THIS CODE AND INFORMATION ARE PROVIDED "AS IS" WITHOUT WARRANTY OF ANY
  * KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A
  * PARTICULAR PURPOSE.
  *
- *****************************************************************************/
+ * End user communication with the DMU380:
+ * - Nav-View (UART) maximum rate of 100 Hz (due to wait in the function below)
+ *    handled by the Memsic ucb (Unified Code Base) - handle_packet, send_packet,
+ *    extern_port.c, ucb_packet.c comm_buffers.c
+ * - SPI communication is an external interrupt driven (asynchronous) bus
+ ******************************************************************************/
 /*******************************************************************************
 Copyright 2018 ACEINNA, INC
 
@@ -23,32 +28,17 @@ See the License for the specific language governing permissions and
 limitations under the License.
 *******************************************************************************/
 
-#ifndef COMMAND_LINE_H
-#define COMMAND_LINE_H
-
-#include <stdint.h>
-
-
-typedef void(*tShellCallback)(uint32_t);
-
-/// command token, callback and help table
-typedef struct {
-    char const     *name;
-    tShellCallback callback;
-    uint32_t       callbackData;
-    char const     *help;
-} tCommand;
-
-extern const tCommand gCommands[];
-
-void CmdPrintPrompt();
-void CmdLineLookup(tCommand const *cmd_table);
-int  CmdLineGetArgString(uint8_t **s);
-int  CmdLineGetArgInt(int32_t *i);
-int  CmdLineGetArgUInt(uint32_t *i);
-int  CmdLineGetArgFloat(float *f);
-void CmdLineExec(char const *cmdline, const tCommand *cmd_table);
-void TaskCommandLine(void const *argument);
+#ifndef _TASK_USER_COMMUNICATION_H_
+#define _TASK_USER_COMMUNICATION_H_
+#include "GlobalConstants.h"
+// Function prototypes
+extern void TaskUserCommunication(void const *argument);
+void        InitBoardConfiguration_Pins(void);
+extern BOOL UseSpiUserInterface (void);
+void        ProcessUserCommands  (void);
+void        SendContinuousPacket (int dacqRate);
 
 
-#endif //COMMAND_LINE_H
+
+
+#endif

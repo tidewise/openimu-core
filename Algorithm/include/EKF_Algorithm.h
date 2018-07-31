@@ -14,6 +14,8 @@
 #include "StateIndices.h"
 #include "UpdateMatrixSizing.h"  // used to specify the size of the update vectors
 
+#include "gpsAPI.h"   // For gpsDataStruct_t in EKF setter
+
 #include "Indices.h"
 
 // Changed to 1e-2 on Sep 13, 2016
@@ -74,9 +76,9 @@ typedef struct {
 
     // Used to generate the system ICs
     // GPS stuff still needed
-} EKFInputDataStruct;
+} EKF_InputDataStruct;
 
-extern EKFInputDataStruct gEKFInputData; // 
+extern EKF_InputDataStruct gEKFInputData;
 
 
 /* Global Algorithm structure  */
@@ -97,26 +99,29 @@ typedef struct {
     uint8_t           opMode;
     uint8_t           turnSwitchFlag;
     uint8_t           linAccelSwitch;
-} EKFOutputDataStruct;
+} EKF_OutputDataStruct;
 
-extern EKFOutputDataStruct gEKFOutputData;
+extern EKF_OutputDataStruct gEKFOutputData;
 
 void EKF_Algorithm(void);
 void enableFreeIntegration(BOOL enable);
 
 // Getters for data extraction from the EKF output data structure
-void GetEKF_Attitude_EA(real *EulerAngles);
-void GetEKF_Attitude_Q(real *Quaternions);
-void GetEKF_CorrectedAngRates(real *CorrAngRates_B);
-void GetEKF_CorrectedAccels(real *CorrAccels_B);
-void GetEKF_EstimatedAngRateBias(real *AngRateBias_B);
-void GetEKF_EstimatedAccelBias(real *AccelBias_B);
-void GetEKF_EstimatedPosition(real *Position_N);
-void GetEKF_EstimatedVelocity(real *Velocity_N);
+void EKF_GetAttitude_EA(real *EulerAngles);
+void EKF_GetAttitude_Q(real *Quaternions);
+void EKF_GetCorrectedAngRates(real *CorrAngRates_B);
+void EKF_GetCorrectedAccels(real *CorrAccels_B);
+void EKF_GetEstimatedAngRateBias(real *AngRateBias_B);
+void EKF_GetEstimatedAccelBias(real *AccelBias_B);
+void EKF_GetEstimatedPosition(real *Position_N);
+void EKF_GetEstimatedVelocity(real *Velocity_N);
 
-void GetEKF_OperationalMode(uint8_t *EKF_OperMode);
-void GetEKF_OperationalSwitches(uint8_t *EKF_LinAccelSwitch, uint8_t *EKF_TurnSwitch);
+void EKF_GetOperationalMode(uint8_t *EKF_OperMode);
+void EKF_GetOperationalSwitches(uint8_t *EKF_LinAccelSwitch, uint8_t *EKF_TurnSwitch);
 
+// Setter functions
+void EKF_SetInputStruct(double *accels, double *rates, double *mags, gpsDataStruct_t *gps);
+void EKF_SetOutputStruct(void);
 
 #endif /* _EKF_ALGORITHM_H_ */
 

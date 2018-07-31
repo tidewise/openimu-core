@@ -1,13 +1,12 @@
 /** ***************************************************************************
- * @file   commandTable.h table of commands, calbacks, and help strings
+ * @file boardAPI.h API functions for Interfacing with hardware resources
  *
  * THIS CODE AND INFORMATION ARE PROVIDED "AS IS" WITHOUT WARRANTY OF ANY
  * KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
  * IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A
  * PARTICULAR PURPOSE.
  *
- *  Table of commands available to be sent from the commandLine.c shell
- ******************************************************************************/
+ *****************************************************************************/
 /*******************************************************************************
 Copyright 2018 ACEINNA, INC
 
@@ -25,20 +24,26 @@ limitations under the License.
 *******************************************************************************/
 
 
-//#include "commandLine.h"
-#include "commands.h"
+#ifndef _BOARD_API_H
+#define _BOARD_API_H
+#include <stdint.h>
 
-#define COMMAND_TABLE_END {"",0,0,""}
+#define GPIO_INPUT  0
+#define GPIO_OUTPUT 1
+#include "GlobalConstants.h"
 
-//Command table
-// {char *name, tShellCallback callback, uint32_t callbackData, const *help }
-const tCommand gCommands[] =
-{
-  {"ver",      &CmdVersion,                0, "Display firmware version"},
-  {"raccel",   &CmdReadAccelerometer,      0, "Read accelerometer"},
-  {"rgyro",    &CmdReadGyro,               0, "Read Gyro"},
-  {"rm",       &CmdReadMagnetometer,       0, "Read magnetometer"},
-//  {"rGPS",     &CmdGpsRead, 0,  "Read current GPS value" },
-  COMMAND_TABLE_END  //MUST BE LAST!!!
-};
+void    configureIO3Pin(int mode); // where mode is GPIO_INPUT or GPIO_OUTPUT
+void    configureIO3Pin(int mode); // where mode is GPIO_INPUT or GPIO_OUTPUT
+void    configureDataReadyPin(int mode);
+void    setIO3Pin (BOOL high);
+void    setIO2Pin (BOOL high);
+void    setDataReadyPin(BOOL high);
+uint8_t getIO2PinState();
+uint8_t getIO3PinState();
+uint8_t getDataReadyPinState();
+uint8_t ReadUnitHwConfiguration( void );
+void    BoardGetResetStatus(char *destination, int len);
+void    BoardInit();
 
+
+#endif

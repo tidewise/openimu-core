@@ -13,10 +13,8 @@
  ******************************************************************************/
 #include "stm32f4xx_conf.h"
 #include "configureGPIO.h"
-#include "timer.h"
 #include "boardAPI.h"
 #include "GlobalConstants.h"
-//#include "xbowsp_configuration.h"
 #include "platformAPI.h"
 
 /** ****************************************************************************

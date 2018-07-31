@@ -33,6 +33,8 @@
 #include "GpsData.h"
 #include "WorldMagneticModel.h"
 #include "platformAPI.h"
+#include "BITStatus.h"
+
 
 
 
@@ -926,7 +928,7 @@ real TILT_YAW_SWITCH_GAIN = (real)0.05;
 static void _TurnSwitch(void)
 {
     static real minSwitch = (real)0.0, maxSwitch = (real)0.0;
-    static real turnSwitchThresholdPast = (real)0.0;
+    static float turnSwitchThresholdPast = 0.0;
     static real linInterpSF;
 
     real absYawRate;
@@ -937,11 +939,11 @@ static void _TurnSwitch(void)
 
     // In case the user changes the TST during operation
     if (gAlgorithm.turnSwitchThreshold != turnSwitchThresholdPast) {
-        // Example conversion: ( 1820*12868 / 2^27 ) * ( 180/pi )
-        minSwitch = gAlgorithm.turnSwitchThreshold * (real)(TWO_PI / TWO_POW_16);   // angle in radians
-        maxSwitch = (real)2.0 * minSwitch;   // angle in radians
-
         turnSwitchThresholdPast = gAlgorithm.turnSwitchThreshold;
+
+        // Example conversion: ( 1820*12868 / 2^27 ) * ( 180/pi )
+        minSwitch = gAlgorithm.turnSwitchThreshold * (real)(DEG_TO_RAD);   // angle in radians
+        maxSwitch = (real)2.0 * minSwitch;   // angle in radians
 
         linInterpSF = ((real)1.0 - TILT_YAW_SWITCH_GAIN) / (maxSwitch - minSwitch);
     }
@@ -949,7 +951,7 @@ static void _TurnSwitch(void)
     // Linear interpolation if the yawRate is above the specified threshold
     if ((gAlgorithm.state > HIGH_GAIN_AHRS) && (absYawRate > minSwitch))
     {
-        gAlgorithm.bitStatus.swStatus.bit.turnSwitch = TRUE;
+        gBitStatus.swStatus.bit.turnSwitch = TRUE;
         //        std::cout << "TurnSwitch (INS): Activated\n";
 
         // When the rate is below the maximum rate defined by
@@ -966,7 +968,7 @@ static void _TurnSwitch(void)
         // Specify the multiplier so it is between G and 1.0
         gKalmanFilter.turnSwitchMultiplier = TILT_YAW_SWITCH_GAIN + turnSwitchScaleFactor;
     } else {
-        gAlgorithm.bitStatus.swStatus.bit.turnSwitch = FALSE;
+        gBitStatus.swStatus.bit.turnSwitch = FALSE;
         gKalmanFilter.turnSwitchMultiplier = (real)1.0;
     }
 }

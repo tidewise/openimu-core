@@ -30,13 +30,13 @@ limitations under the License.
 #define LOGGING_LEVEL LEVEL_DEBUG
 #include "debug.h"
 #include "driverGPS.h"
-#include "timer.h"
 #include "SiRFPacketFormats.h"
-#include "dmu.h"
 #include "utilities.h"
 #include "filter.h"
-#include "algorithm.h"
+#include "algorithmAPI.h"
 #include <string.h>
+#include "BITStatus.h"
+#include "osapi.h"
 
 static gpsDeltaStruct downVelDelta;
 
@@ -175,9 +175,9 @@ void configSiRFGPSReceiver(GpsData_t      * GPSData,
     GPSData->GPSbaudRate = goalBaudRate;
     while ( !isGpsTxEmpty() )
     {/* spin */;} ///< wait for message to finish  DEBUG: Can get stuck here if SiRF not attached
-    DelayMs(100);
+    OS_Delay(100);
     initGpsUart( realBaudRate );
-    DelayMs(1000); ///< clear incoming remaining packets
+    OS_Delay(100); ///< clear incoming remaining packets
     flushGPSRecBuf();
     pollSiRFVersionMsg(); // send request for version - if (binary) version recieved set msg rate
     GPSData->GPSFix = 1;
@@ -342,7 +342,7 @@ static void _SiRFSendModeControlMsg(void)
 static void _configureSiRFBinaryMessages()
 {
     _SiRFSendMessageRateMsg(0x02, 0, 0); // disable all messages
-    DelayMs(10);
+    OS_Delay(10);
     _SiRFSendMessageRateMsg(0x00, SIRF_GEODETIC_NAVIGATION_DATA, 1); // 1 [sec]
 #ifdef FIVE_HZ_GPS
     _SiRFSendModeControlMsg();
@@ -409,13 +409,13 @@ static void _parseSiRFGeodeticNavMsg(char          *msg,
     if ( geo->navValid > 0) {
           GPSData->HDOP = 50.0;
           GPSData->GPSFix = 1; // zero is valid anything else is degraded
-          gAlgorithm.bitStatus.hwStatus.bit.unlockedInternalGPS = 1; // no signal lock
-          gAlgorithm.bitStatus.swStatus.bit.noGPSTrackReference = 1; // no GPS track
+          gBitStatus.hwStatus.bit.unlockedInternalGPS = 1; // no signal lock
+          gBitStatus.swStatus.bit.noGPSTrackReference = 1; // no GPS track
     } else {
           GPSData->HDOP = geo->hdop;
           GPSData->GPSFix = 0;
-          gAlgorithm.bitStatus.hwStatus.bit.unlockedInternalGPS = 0; // locked
-          gAlgorithm.bitStatus.swStatus.bit.noGPSTrackReference = 0; // GPS track
+          gBitStatus.hwStatus.bit.unlockedInternalGPS = 0; // locked
+          gBitStatus.swStatus.bit.noGPSTrackReference = 0; // GPS track
     }
 
 	GPSData->trueCourse     = 0.01 * byteSwap16(geo->courseOverGround); // / 100.0; // [deg]
