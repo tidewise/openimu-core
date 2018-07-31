@@ -31,15 +31,13 @@ limitations under the License.
 
 #include "stm32f4xx_conf.h"
 #include "stm32f4xx.h"
-#include "dmu.h"
 #include "port_def.h"
 #include "uart.h"
 #include "comm_buffers.h"
-#include "algorithm.h" // gAlgorithm - BIT struct
 #include "osapi.h"
 #include "boardDefinition.h"
+#include "BITStatus.h"
 
-#include "timer.h"   // for TimeNow()
 
 extern port_struct gPort[], gPort0, gPort1, gPort2;
 
@@ -260,9 +258,9 @@ void uart_isr (unsigned int channel,
         comBuffSuccess = COM_buf_add(&(port->rec_buf), &ch, 1);
   		if ( comBuffSuccess == 0) { // overflow
             if (channel == kUserA_UART) // user
-                gAlgorithm.bitStatus.comSABIT.bit.recBufOverflow = 1;
+                gBitStatus.comSABIT.bit.recBufOverflow = 1;
             else if  (channel == kUserB_UART) {// GPS
-                gAlgorithm.bitStatus.comSBBIT.bit.recBufOverflow = 1;
+                gBitStatus.comSBBIT.bit.recBufOverflow = 1;
             }
         }
         // fixme: signal OS to run task user comm
@@ -368,25 +366,25 @@ void uart_BIT (int uartType)
 {
     USART_TypeDef *uart;
 
-    gAlgorithm.bitStatus.comSABIT.bit.breakDetect  = 0;
-    gAlgorithm.bitStatus.comSABIT.bit.framingError = 0;
-    gAlgorithm.bitStatus.comSABIT.bit.parityError  = 0;
+    gBitStatus.comSABIT.bit.breakDetect  = 0;
+    gBitStatus.comSABIT.bit.framingError = 0;
+    gBitStatus.comSABIT.bit.parityError  = 0;
 
-    gAlgorithm.bitStatus.comSBBIT.bit.breakDetect  = 0;
-    gAlgorithm.bitStatus.comSBBIT.bit.framingError = 0;
-    gAlgorithm.bitStatus.comSBBIT.bit.parityError  = 0;
+    gBitStatus.comSBBIT.bit.breakDetect  = 0;
+    gBitStatus.comSBBIT.bit.framingError = 0;
+    gBitStatus.comSBBIT.bit.parityError  = 0;
 
     if (uartType == USER_COMM_UART) {// user
         uart = gUartConfig[USER_COMM_UART].uart;
-        gAlgorithm.bitStatus.comSABIT.bit.breakDetect  = USART_GetFlagStatus(uart, USART_FLAG_LBD);
-        gAlgorithm.bitStatus.comSABIT.bit.framingError = USART_GetFlagStatus(uart, USART_FLAG_FE);
-        gAlgorithm.bitStatus.comSABIT.bit.parityError  = USART_GetFlagStatus(uart, USART_FLAG_PE);
+        gBitStatus.comSABIT.bit.breakDetect  = USART_GetFlagStatus(uart, USART_FLAG_LBD);
+        gBitStatus.comSABIT.bit.framingError = USART_GetFlagStatus(uart, USART_FLAG_FE);
+        gBitStatus.comSABIT.bit.parityError  = USART_GetFlagStatus(uart, USART_FLAG_PE);
     }
     else if (uartType == GPS_UART) { // GPS
         uart = gUartConfig[GPS_UART].uart;
-        gAlgorithm.bitStatus.comSBBIT.bit.breakDetect  = USART_GetFlagStatus(uart, USART_FLAG_LBD);
-        gAlgorithm.bitStatus.comSBBIT.bit.framingError = USART_GetFlagStatus(uart, USART_FLAG_FE);
-        gAlgorithm.bitStatus.comSBBIT.bit.parityError  = USART_GetFlagStatus(uart, USART_FLAG_PE);
+        gBitStatus.comSBBIT.bit.breakDetect  = USART_GetFlagStatus(uart, USART_FLAG_LBD);
+        gBitStatus.comSBBIT.bit.framingError = USART_GetFlagStatus(uart, USART_FLAG_FE);
+        gBitStatus.comSBBIT.bit.parityError  = USART_GetFlagStatus(uart, USART_FLAG_PE);
    }
 
 } /* end function uart_BIT */

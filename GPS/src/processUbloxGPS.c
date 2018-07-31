@@ -29,7 +29,6 @@ limitations under the License.
 #include <math.h>
 #include <stdlib.h>
 
-#include "dmu.h"
 #include "driverGPS.h"
 
 /// constants used for connecting with a unknown ublox

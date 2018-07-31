@@ -32,12 +32,10 @@ limitations under the License.
 #include <stdio.h>
 #include <stdint.h>
 
-#include "dmu.h"
 #include "driverGPS.h"
 #include "filter.h"
-#include "timer.h"
-//#include "xbowsp_configuration.h"
-#include "algorithm.h"
+#include "BITStatus.h"
+#include "algorithmAPI.h"
 
 char _parseGPGGA(char *msgBody, GpsData_t* GPSData);
 char _parseVTG(char *msgBody, GpsData_t* GPSData);
@@ -276,11 +274,11 @@ char _parseGPGGA(char          *msgBody,
 
     if(GPSFix >= 1) {
         convertItow(GPSData); // create pseudo ITOW
-        gAlgorithm.bitStatus.hwStatus.bit.unlockedInternalGPS = 0; // locked
-        gAlgorithm.bitStatus.swStatus.bit.noGPSTrackReference = 0; // GPS track
+        gBitStatus.hwStatus.bit.unlockedInternalGPS = 0; // locked
+        gBitStatus.swStatus.bit.noGPSTrackReference = 0; // GPS track
     } else {
-        gAlgorithm.bitStatus.hwStatus.bit.unlockedInternalGPS = 1; // no signal lock
-        gAlgorithm.bitStatus.swStatus.bit.noGPSTrackReference = 1; // no GPS track
+        gBitStatus.hwStatus.bit.unlockedInternalGPS = 1; // no signal lock
+        gBitStatus.swStatus.bit.noGPSTrackReference = 1; // no GPS track
     }
 
     /// NMEA - DGPS bit

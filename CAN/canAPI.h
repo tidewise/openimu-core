@@ -1,5 +1,5 @@
 /** ***************************************************************************
- * @file timer.h system timer configure an daccess functions
+ * @file can.h control area network functions
  *
  * THIS CODE AND INFORMATION ARE PROVIDED "AS IS" WITHOUT WARRANTY OF ANY
  * KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
@@ -23,9 +23,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 *******************************************************************************/
 
-#ifndef __TIMER_H
-#define __TIMER_H
 
-#include "timerAPI.h"
+#ifndef __CAN_API_H
+#define __CAN_API_H
+#include <stdint.h>
+
+extern void InitCommunication_UserCAN(void);
+extern void TaskCANCommunication(void);
 
 #endif

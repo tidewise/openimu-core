@@ -248,5 +248,9 @@ typedef struct {
 //  union HW_SENSOR_ERROR hwSensorErrStatus; // hardware sensor error status
 } BITStatusStruct;
 
+
+extern BITStatusStruct   gBitStatus;
+
+
 #endif
 

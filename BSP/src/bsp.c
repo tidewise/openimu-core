@@ -10,7 +10,6 @@
 ******************************************************************************/
 #include "stm32f4xx_conf.h"
 #include "bsp.h"
-#include "dmu.h"
 #include "configureGPIO.h"
 #include "stdio.h"
 #include "boardAPI.h"
@@ -45,6 +44,8 @@ void BSP_init(void)
     for(i = WWDG_IRQn; i <= FPU_IRQn; i++){
          NVIC_SetPriority((IRQn_Type)i, 0x02);
     }
+
+    NVIC_PriorityGroupConfig( NVIC_PriorityGroup_4 );
 }
 
 /** ****************************************************************************

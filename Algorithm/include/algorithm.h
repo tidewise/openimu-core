@@ -31,7 +31,7 @@ limitations under the License.
 
 #include "GlobalConstants.h"
 
-#include "BITStatus.h" // BITStatusStruct
+//#include "BITStatus.h" // BITStatusStruct
 #include "Indices.h"
 #include "algorithmAPI.h"
 
@@ -100,10 +100,6 @@ union AlgoBehavior
 
 /* Global Algorithm structure  */
 typedef struct {
-    uint32_t          rawSensors[N_RAW_SENS];
-    int32_t           tempCompBias[6];           /// temperature compensation inertial sensor bias
-
-    double            scaledSensors[N_RAW_SENS]; /// g's, rad/s, G, deg C, (body frame)
 
     // Used to generate the system ICs
     real              accumulatedAccelVector[3];
@@ -115,22 +111,16 @@ typedef struct {
     real              filteredYawRate, filteredYawRatePast;
     real              yawRateMeasPast;
 
-//    real              correctedRate[3];          /// algorithm corrected rate
-//    real              tangentRates[3];
-//    real              tangentAccels[3];
     real              attitude[3];              /// from qb2t
     real              leveledMags[3];           /// x and y mags (tangent frame w/o user alignment)
     volatile uint16_t counter;                  /// inc. with every continuous mode output packet
     volatile uint32_t timer;  	                 ///< timer since power up (ms)
-    volatile BITStatusStruct bitStatus;   //bit and status structure
 
     real              downRate;
 
     real              compassHeading;
 
     real              RateOutSF, AccelOutSF, MagOutSF, TempOutSF;
-
-    int32_t           scaledSensors_q27[N_RAW_SENS];  // g's, rad/s, G, deg C, (body frame)
 
     // control the stage of operation for the algorithms
     uint8_t           state;   // takes values from HARDWARE_STABILIZE to INIT_ATTITUDE to HG_AHRS
@@ -149,13 +139,18 @@ typedef struct {
 
     float             tempMisalign[18];
 
-    double llaRad[3], rGPS_E[3];
+    double              llaRad[3];
+    double              rGPS_E[3];
     real R_NinE[3][3];
 
-    uint32_t itow, dITOW;
+    uint32_t            itow;
+    uint32_t            dITOW;
 
     uint8_t  callingFreq;
-    real dt, dtOverTwo, dtSquared, sqrtDt;
+    real                dt;
+    real                dtOverTwo;
+    real                dtSquared;
+    real                sqrtDt;
 
     // The following variables are used to increase the Kalman filter gain when the
     //   acceleration is very close to one (i.e. the system is at rest)
@@ -171,14 +166,9 @@ typedef struct {
 
     uint8_t linAccelLPFType;
     union   AlgoBehavior Behavior;
-    uint16_t    turnSwitchThreshold; // 0, 0.4, 10 driving, 1 flying [deg/sec]   0x000d
+    float    turnSwitchThreshold; // 0, 0.4, 10 driving, 1 flying [deg/sec]   0x000d
 } AlgorithmStruct;
 
 extern AlgorithmStruct gAlgorithm;
-
-
-
-extern void    SetAlgorithmUseDgps(BOOL d);
-
 
 #endif

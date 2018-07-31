@@ -37,20 +37,16 @@ limitations under the License.
 
 #define   GPS_BAUD_RATE_UNDEFINED -1
 #include "uart.h"    // for uart_IrqOnOff()
-#include "dmu.h"
 #include "driverGPS.h"
-#include "timer.h"
-//#include "extern_port_config.h"
 #include "platformAPI.h"
-//#define LOGGING_LEVEL LEVEL_DEBUG
-#define LOGGING_LEVEL LEVEL_STREAM
+
 #include "debug.h"
 #include "debug_usart.h"
 #include "gps.h" // the streaming flag
-//#include "calibrate.h"
-//#include "configureGPIO.h" // IO3 (B11) debug timing pin
-#include "algorithm.h"
 #include "platformAPI.h"
+#include "BITStatus.h"
+#include "osapi.h"
+
 
 /// GPS data struct
 // to change to NMEA then pass GPS out debug port: un-comment this and
@@ -122,7 +118,7 @@ void GPSHandler(void)
 
 	/// new data in circular buffer?
 	bytesInBuffer               = gpsBytesAvailable(); // driverGPS.c
-	gGpsDataPtr->Timer100Hz10ms = TimeNow(); ///< get system clock ticks
+	gGpsDataPtr->Timer100Hz10ms = getSystemTime(); ///< get system clock ticks
     gGpsDataPtr->isGPSBaudrateKnown = 1;
 
     // parse moved to top since is always called after init
@@ -161,7 +157,7 @@ void _configGPSReceiver(int           *bytesFromBuffer,
     _parseGPSMsg(bytesFromBuffer, GPSData); // load GPSdata structure
 
 	if (platformUseGPS()) { ///< 0 - internal GPS receiver is Origin SiRF binary or NMEA
-        gAlgorithm.bitStatus.comStatus.bit.noExternalGPS = 1; // BIT status
+        gBitStatus.comStatus.bit.noExternalGPS = 1; // BIT status
         if ( GPSData->isGPSBaudrateKnown == 0) {
             // 2 second timeout can cause a DAQ restart in the data acquisiton task
             // if there is no GPS antena connected
@@ -196,7 +192,7 @@ void _configGPSReceiver(int           *bytesFromBuffer,
         }
 	} else {  /// External GPS receiver
 		GPSData->GPSTopLevelConfig |= 1 << EXTERNAL_GPS; // UBLOX
-        gAlgorithm.bitStatus.comStatus.bit.noExternalGPS = 1; // BIT status
+        gBitStatus.comStatus.bit.noExternalGPS = 1; // BIT status
         /// unknown protocol
         if(( GPSData->GPSAUTOSetting & AUTOPROTOCOL) == AUTOPROTOCOL ) { // 2
             if (( GPSData->GPSAUTOSetting & AUTOBAUD)!= AUTOBAUD) {///< 1 baud rate known
@@ -268,8 +264,8 @@ void _parseGPSMsg(int           *numInBuf,
                                         GPSData);
 		if( bytesInCircularBuf > 1 ) {
 			if( startPacketTime == 0 )
-              startPacketTime = TimeNow();
-			else if(( TimeNow() - startPacketTime ) > GPS_PACKET_RECEIVE_TIMEOUT || // 0.5 sec
+              startPacketTime = getSystemTime();
+			else if(( getSystemTime() - startPacketTime ) > GPS_PACKET_RECEIVE_TIMEOUT || // 0.5 sec
 				      bytesInCircularBuf >= GPS_INTERFACE_RX_BUFFER_SIZE) { // 512
                 // timeout or overflow - flush buffer
 				startPacketTime        = 0;

@@ -34,8 +34,6 @@ limitations under the License.
 #include "debug_usart.h"
 #include "port_def.h" // port_struct, COM_BUF_SIZE
 #include "comm_buffers.h"
-#include "timer.h"
-//#include "driverGPS.h"
 #include "osapi.h"
 #include "osresources.h"
 #include "platformAPI.h"
@@ -222,12 +220,14 @@ void InitDebugSerialCommunication( uint32_t baudRate )
     }
 
     /// now for interrupts
-    USART_ITConfig( DEBUG_USART, USART_IT_RXNE, ENABLE );
-	NVIC_InitStructure.NVIC_IRQChannel = DEBUG_USART_IRQn;
-    NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0x9;
-    NVIC_InitStructure.NVIC_IRQChannelSubPriority        = 0x0;
-	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-	NVIC_Init( &NVIC_InitStructure );
+    if(cliSem){
+		USART_ITConfig( DEBUG_USART, USART_IT_RXNE, ENABLE );
+		NVIC_InitStructure.NVIC_IRQChannel = DEBUG_USART_IRQn;
+		NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0x9;
+		NVIC_InitStructure.NVIC_IRQChannelSubPriority        = 0x0;
+		NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
+		NVIC_Init( &NVIC_InitStructure );
+    }
 }
 
 /** ****************************************************************************
@@ -250,8 +250,10 @@ void DEBUG_USART_IRQ()
     ///   semaphore when detected
     if (USART_GetFlagStatus(DEBUG_USART, USART_FLAG_RXNE)) {
         ch = DEBUG_USART->DR;
-        COM_buf_add(&(debugPort.rec_buf), &ch, 1);
-        osSemaphoreRelease(cliSem);
+        if(cliSem){
+			COM_buf_add(&(debugPort.rec_buf), &ch, 1);
+			osSemaphoreRelease(cliSem);
+        }
     }
 
     /// Check the state of the "transmit data register empty" flag

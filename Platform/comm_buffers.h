@@ -25,7 +25,7 @@ limitations under the License.
 
 #ifndef COMM_BUFFERS_H
 #define COMM_BUFFERS_H
-#include "dmu.h"
+#include "GlobalConstants.h"
 
 #ifdef __cplusplus
 extern "C" {

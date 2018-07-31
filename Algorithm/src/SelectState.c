@@ -28,6 +28,8 @@
 #include "GpsData.h"  // gGpsData
 #include "platformAPI.h"  
 #include "WorldMagneticModel.h"
+#include "BITStatus.h"
+
 
 // Local functions
 static BOOL _AccumulateFieldVectors(void);
@@ -67,8 +69,8 @@ void StabilizeSystem(void)
     }
 
     // Set the bit to indicate initialization
-    gAlgorithm.bitStatus.swAlgBIT.bit.initialization = TRUE;
-    gAlgorithm.bitStatus.swStatus.bit.algorithmInit  = TRUE;
+    gBitStatus.swAlgBIT.bit.initialization = TRUE;
+    gBitStatus.swStatus.bit.algorithmInit  = TRUE;
 }
 
 
@@ -148,10 +150,10 @@ void InitializeAttitude(void)
         gAlgorithm.linAccelSwitchCntr = 0;
 
         /// Update the system status
-        gAlgorithm.bitStatus.swAlgBIT.bit.initialization        = FALSE;
-        gAlgorithm.bitStatus.swStatus.bit.algorithmInit         = FALSE;
-        gAlgorithm.bitStatus.swStatus.bit.highGain              = TRUE;
-        gAlgorithm.bitStatus.swStatus.bit.attitudeOnlyAlgorithm = TRUE;
+        gBitStatus.swAlgBIT.bit.initialization        = FALSE;
+        gBitStatus.swStatus.bit.algorithmInit         = FALSE;
+        gBitStatus.swStatus.bit.highGain              = TRUE;
+        gBitStatus.swStatus.bit.attitudeOnlyAlgorithm = TRUE;
     }
 }
 
@@ -197,7 +199,7 @@ void HG_To_LG_Transition_Test(void)
         gAlgorithm.state      = LOW_GAIN_AHRS;
         gAlgorithm.stateTimer = gAlgorithm.Duration.Low_Gain_AHRS;
 
-        gAlgorithm.bitStatus.swStatus.bit.highGain = FALSE;
+        gBitStatus.swStatus.bit.highGain = FALSE;
 
         // Populate Q (constant values) for the low-gain state (only a few variables changed)
         //GenerateProcessCovariance();
@@ -290,8 +292,7 @@ void LG_To_INS_Transition_Test(void)
                 }
                 BOOL declMeasCurrent = ( dt <= LIMIT_DECL_EXPIRATION_TIME );
 // ) && gWorldMagModel.validSoln;
-                BOOL needDeclMeas = magReadingsPossible &&
-                                    gAlgorithm.Behavior.bit.useGPS;   // <-- check is done above
+                BOOL needDeclMeas = magReadingsPossible && gpsUsedInAlgorithm();
 
                 // Can transition to INS if:
                 //   1) GPS is being used
@@ -461,8 +462,8 @@ void INS_To_AHRS_Transition_Test(void)
         }
 #endif
 
-        gAlgorithm.bitStatus.swStatus.bit.highGain              = ( gAlgorithm.state == HIGH_GAIN_AHRS );
-        gAlgorithm.bitStatus.swStatus.bit.attitudeOnlyAlgorithm = TRUE;
+        gBitStatus.swStatus.bit.highGain              = ( gAlgorithm.state == HIGH_GAIN_AHRS );
+        gBitStatus.swStatus.bit.attitudeOnlyAlgorithm = TRUE;
     }
 
 }
@@ -509,8 +510,8 @@ static void _DropToHighGainAHRS(void)
     gAlgorithm.state      = HIGH_GAIN_AHRS;
     gAlgorithm.stateTimer = gAlgorithm.Duration.High_Gain_AHRS;
 
-    gAlgorithm.bitStatus.swStatus.bit.highGain              = TRUE;
-    gAlgorithm.bitStatus.swStatus.bit.attitudeOnlyAlgorithm = TRUE;
+    gBitStatus.swStatus.bit.highGain              = TRUE;
+    gBitStatus.swStatus.bit.attitudeOnlyAlgorithm = TRUE;
 
     // Reset flag in case drop is from INS
     gAlgorithm.insFirstTime = TRUE;

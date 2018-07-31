@@ -28,8 +28,7 @@ limitations under the License.
 #include <string.h> // For memset()
 #include <stdlib.h> // malloc
 #include <math.h>   // fabs()
-
-#include "dmu.h"   // For NUM_SENSOR_READINGS, etc
+#include "sensors_data.h"
 #include "algorithm.h"   // For XACCEL, etc
 #include "filter.h"
 
@@ -209,12 +208,12 @@ Apply_Butterworth_Q27_Filter(butterworth_fixed *coefficients,
     static int32_t  iir_y[NUM_SENSOR_READINGS][3]; // [11][3] filtered + delay data
 
     Butterworth_Q27_PushSample((int32_t*)iir_x[sensor],
-                               gAlgorithm.rawSensors[sensor]);
+                               gSensorsData.rawSensors[sensor]);
 
     Butterworth_Q27_Filter( coefficients,
                            (int32_t*)iir_x[sensor],
                            (int32_t*)iir_y[sensor]);
-    gAlgorithm.rawSensors[sensor] = iir_y[sensor][0];
+    gSensorsData.rawSensors[sensor] = iir_y[sensor][0];
 
 	return 0; // force fcn to finish before returning
 }
@@ -316,10 +315,10 @@ Apply_Bartlett_Q27_Filter( bartlett_fixed *coefficients,
     // Write the (raw) value in rawSensors to the filter buffer
     Bartlett_Q27_PushSample( coefficients,
                              x,
-                             gAlgorithm.rawSensors[sensor] );
+                             gSensorsData.rawSensors[sensor] );
 
     // Update the output value with the filtered value
-    gAlgorithm.rawSensors[sensor] = (uint32_t)filteredValue; //x[0];
+    gSensorsData.rawSensors[sensor] = (uint32_t)filteredValue; //x[0];
 
     return 0; // finish before returning
 }
