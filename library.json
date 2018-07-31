@@ -1,13 +1,13 @@
 {
   "name": "openimu-core-libraries",
-  "version": "1.0.2",
+  "version": "1.0.0",
   "description": "Open Source Embedded IMU and Navigation Library",
   "keywords": "sensors, IMU, INS, AI, automotive, navigation",
   "repository":
   {
     "type": "git",
     "url": "https://github.com/Aceinna/openimu-core.git",
-    "branch": "develop"
+    "branch": "master"
   },
   "build": {
     "flags": [
@@ -31,13 +31,5 @@
     ],
     "libArchive": false,
     "platforms": "aceinna_imu"
-  },
-     "authors": [
-        {
-            "maintainer": false, 
-            "name": "Aceinna", 
-            "url": "https://github.com/Aceinna", 
-            "email": null
-        }
-    ] 
+  }
  }
