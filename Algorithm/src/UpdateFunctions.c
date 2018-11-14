@@ -9,38 +9,25 @@
 #include <string.h>
 
 #include "UpdateMatrixSizing.h"  // used to specify the size of the update vectors
-
 #include "GlobalConstants.h"   // TRUE, FALSE, NUMBER_OF_EKF_STATES, ...
 #include "UpdateFunctions.h"
-
 #include "algorithm.h"
-
 #include "TimingVars.h"
 #include "Indices.h"
 #include "AlgorithmLimits.h"
-
 #include "EKF_Algorithm.h"
-
 #include "VectorMath.h"
 #include "MatrixMath.h"
-
 #include "QuaternionMath.h"
 #include "TransformationMath.h"
 #include "StateIndices.h"
-
 #include "SensorNoiseParameters.h"
-
 #include "GpsData.h"
 #include "WorldMagneticModel.h"
 #include "platformAPI.h"
 #include "BITStatus.h"
 
-
-
-
-#ifdef INS_OFFLINE
-#include "c:\Projects\software\sim\INS380_Offline\INS380_Offline\SimulationParameters.h"
-#endif
+#include "driverGPS.h"
 
 //#include "RunLengthEncoding.h"
 // H is sparse and has elements in the following locations...
@@ -60,6 +47,22 @@ static void _TurnSwitch(void);
 
 static real _UnwrapAttitudeError( real attitudeError );
 static real _LimitValue( real value, real limit );
+static BOOL _CheckForUpdateTrigger(uint8_t updateRate);
+
+
+// Update rates
+#define  TEN_HERTZ_UPDATE          10
+#define  TWENTY_HERTZ_UPDATE       20
+#define  TWENTY_FIVE_HERTZ_UPDATE  25
+#define  FIFTY_HERTZ_UPDATE        50
+#define  ONE_HUNDRED_HERTZ_UPDATE  100
+
+static uint32_t updateCntr[2] = { 0, 0 };
+static BOOL newGPSDataFlag;
+static BOOL useMagHeading = 1;
+
+// Uncomment to run only AHRS-type updates
+//#define ATT_UPDATE_ONLY
 
 // EKF_UpdateStage.m
 void EKF_UpdateStage(void)
@@ -70,61 +73,95 @@ void EKF_UpdateStage(void)
     //   order GPS update.
     if( gAlgorithm.state <= LOW_GAIN_AHRS )
     {
-        // Update the AHRS solution at a 10 Hz update rate
-        if( (timer.subFrameCntr == 0) && (timer.oneHundredHertzFlag == 1) ) {
-            // The AHRS/VG solution is handled inside FieldVectorsToEulerAngles (called from the
-            //   prediction function EKF_PredictionStage)
+#if 0
+        // Switch the update rate based on the status of the linear-
+        //   acceleration switch (solution will converge faster when
+        //   static)
+        if( gAlgorithm.linAccelSwitch == TRUE ) {
+            updateRate = TWENTY_FIVE_HERTZ_UPDATE;
+        } else {
+            updateRate = TEN_HERTZ_UPDATE;
+        }
+#endif
 
-            // nu = z - h(xPred)
-            ComputeSystemInnovation_Att();
-            Update_Att();
+        // Only allow the algorithm to be called on 100 Hz marks
+        if(timer.oneHundredHertzFlag == 1) {
+        // Update the AHRS solution at a 10 Hz update rate
+            // Subframe counter counts to 10 before it is reset
+            if( _CheckForUpdateTrigger(TEN_HERTZ_UPDATE) )
+            {
+                // The AHRS/VG solution is handled inside FieldVectorsToEulerAngles
+                //   (called from the prediction function EKF_PredictionStage)
+
+                // nu = z - h(xPred)
+                ComputeSystemInnovation_Att();
+                Update_Att();
+            }
         }
     } else {
         // GPS-type Updates (with magnetometers: true-heading = mag-heading + mag-decl)
         if ( magUsedInAlgorithm() )
         {
-            // The following variable enables the update to be broken up into two sequential
-            //   calculations in two sucessive 100 Hz periods
+            // The following variable enables the update to be broken up into
+            //   two sequential calculations in two sucessive 100 Hz periods
             static int runInsUpdate = 0;
 
             // Perform the EKF update at 10 Hz (split nine mag-only updates for
             //   for every GPS/mag update)
-            if( (timer.tenHertzCntr == 0) && (timer.subFrameCntr == 0) &&
-                (timer.oneHundredHertzFlag == 1) && (gGpsDataPtr->gpsValid) )
-            {   // Start INS calcs at 10 Hz mark 9
+            // 
+            // Check for 'new GPS data'.  If new, and GPS is valid, perform a
+            //   GPS-Based update and reset timer values to resync the attitude
+            //   updates.
+            if( gEKFInputData.updateFlag && gEKFInputData.gpsValid )
+            {
+                // Resync timer
+                timer.tenHertzCntr = 0;
+                timer.subFrameCntr = 0;
+
+// Debugging counter: updateCntr[0] should be about 9x less than updateCntr[1]
+updateCntr[0] = updateCntr[0] + 1;
                 // At 1 Hz mark, update when GPS data is valid, else do an AHRS-update
                 runInsUpdate = 1;
 
+                // Reset 'new GPS data' flag
+                gEKFInputData.updateFlag = 0;
+
                 // Sync the algorithm itow to the GPS value (may place this elsewhere)
-                gAlgorithm.itow = gGpsDataPtr->itow;
+                gAlgorithm.itow = gEKFInputData.itow;
 
                 // reset the "last good reading" time
-                gAlgorithm.timeOfLastGoodGPSReading = gGpsDataPtr->itow;
+                gAlgorithm.timeOfLastGoodGPSReading = gEKFInputData.itow;
 
                 // Save off the Lat/Lon in radians and altitude in meters
-                gAlgorithm.llaRad[X_AXIS] = ((double)gGpsDataPtr->latSign * gGpsDataPtr->lat) * D2R; // high precision from GPS
-                gAlgorithm.llaRad[Y_AXIS] = ((double)gGpsDataPtr->lonSign * gGpsDataPtr->lon) * D2R;
-                gAlgorithm.llaRad[Z_AXIS] = gGpsDataPtr->alt;
+                gAlgorithm.llaRad[X_AXIS] = (gEKFInputData.lat) * DEG_TO_RAD; // high precision from GPS
+                gAlgorithm.llaRad[Y_AXIS] = (gEKFInputData.lon) * DEG_TO_RAD;
+                gAlgorithm.llaRad[Z_AXIS] = gEKFInputData.alt;
 
-                // Extract what's common between the following function and the routines
-                //   below so we aren't repeating calculations
+                // Extract what's common between the following function and the
+                //   routines below so we aren't repeating calculations
                 GPS_PosVel_To_NED();
 
-                real vSq = (real)(gGpsDataPtr->vNed[X_AXIS] * gGpsDataPtr->vNed[X_AXIS] +
-                                  gGpsDataPtr->vNed[Y_AXIS] * gGpsDataPtr->vNed[Y_AXIS]);
+                // Use gGpsDataPtr->rawGroundSpeed instead to save math
+                real vSq = (real)(gEKFInputData.vNed[X_AXIS] * gEKFInputData.vNed[X_AXIS] +
+                                  gEKFInputData.vNed[Y_AXIS] * gEKFInputData.vNed[Y_AXIS]);
 
                 // Set in LG_To_INS_Transition_Test for AHRS operation
                 if (vSq >= LIMIT_GPS_VELOCITY_SQ) {
-                    gAlgorithm.timeOfLastSufficientGPSVelocity = (int32_t)gGpsDataPtr->itow;
+                    gAlgorithm.timeOfLastSufficientGPSVelocity = (int32_t)gEKFInputData.itow;
                 }
 
-                // This Sequential-Filter (three-stage approach) is nearly as good as the full
-                //   implementation -
-                // we also can split it across multiple iterations to not exceed 10 ms execution
-                // on the embedded 380
-#if 1
+                // When the system is at rest, use the magnetometer readings for
+                //   heading updates.  DEBUG: 0.1 is arbitrary.
+                useMagHeading = ( gEKFInputData.rawGroundSpeed <= 0.45 );  // 0.45 m/s ~= 1.0 mph
+
+                // This Sequential-Filter (three-stage approach) is nearly as
+                //   good as the full implementation -- we also can split it
+                //   across multiple iterations to not exceed 10 ms execution on
+                //   the embedded 380
+#ifndef ATT_UPDATE_ONLY
                 // Compute the system error: z = meas, h = pred = q, nu - z - h
-                //   Do this at the same time even if the update is spread across time-steps
+                //   Do this at the same time even if the update is spread
+                //   across time-steps
                 ComputeSystemInnovation_Pos();
                 ComputeSystemInnovation_Vel();
                 ComputeSystemInnovation_Att();
@@ -134,8 +171,10 @@ void EKF_UpdateStage(void)
 
                 Update_Pos();
                 Update_Vel();
-            }  // comment out (this and next line) to run all update functions in one loop
-            else if ( (timer.tenHertzCntr == 0) && (timer.subFrameCntr == 1) && runInsUpdate ) {
+            // Comment out next line to run all update functions in one loop
+            //   (doesn't work on M3 processor because of how the code is
+            //   implemented - FAST_MATH not set up)
+            } else if( runInsUpdate ) {
                 Update_Att();
                 runInsUpdate = 0;  // set up for next pass
 #else
@@ -144,6 +183,8 @@ void EKF_UpdateStage(void)
 #endif
             } else if ((timer.subFrameCntr == 0) && (timer.oneHundredHertzFlag == 1)) { // AHRS at all the other 10 Hz marks
                 // AHRS update
+// Debugging counter: updateCntr[0] should be about 9x less than updateCntr[1]
+updateCntr[1] = updateCntr[1] + 1;
                 ComputeSystemInnovation_Att();
                 Update_Att();
             }
@@ -151,14 +192,14 @@ void EKF_UpdateStage(void)
             // FIXME: MOVE THIS TO THE EKF CALL, AFTER THE UPDATE, SO THE LAT/LON
             //        IS COMPUTED FROM INTEGRATED DATA IF AN UPDATE IS NOT PERFORMED
             // Update LLA at 100/200 Hz
-            if ( gGpsDataPtr->gpsValid && ( gAlgorithm.insFirstTime == FALSE ) ) {
+            if ( gEKFInputData.gpsValid && ( gAlgorithm.insFirstTime == FALSE ) ) {
                 //r_E = Base_To_ECEF( &gKalmanFilter.Position_N[0], &gAlgorithm.rGPS0_E[0], &R_NinE[0][0] );    //
-                double r_E[3];
+                double r_E[NUM_AXIS];
                 PosNED_To_PosECEF( &gKalmanFilter.Position_N[0], &gAlgorithm.rGPS0_E[0], &gAlgorithm.R_NinE[0][0], &r_E[0] );
                 //                 100 Hz                        generated once          1 Hz                      100 Hz
 
                 //gKalmanFilter.llaDeg[LAT_IDX] = ECEF2LLA( r_E );   // output variable (ned used for anything else); this is in [ deg, deg, m ]
-                ECEF_To_LLA(&gKalmanFilter.llaDeg[0], &r_E[0]);
+                ECEF_To_LLA(&gKalmanFilter.llaDeg[LAT], &r_E[X_AXIS]);
                 //          100 Hz                    100 Hz
             }
 
@@ -180,7 +221,7 @@ void EKF_UpdateStage(void)
 //        % Magnetometers not available or unused
 //
 //        % Check for valid GPS signal
-//        if( gGpsDataPtr.GPSValid ),
+//        if( gEKFInputData.gpsValid ),
 //            % Compute vSq and respond accordingly
 //            vSq = gGpsDataPtr.vel(X_AXIS) * gGpsDataPtr.vel(X_AXIS) + ...
 //                  gGpsDataPtr.vel(Y_AXIS) * gGpsDataPtr.vel(Y_AXIS);
@@ -265,8 +306,8 @@ void EKF_UpdateStage(void)
 //            end
 //
 //            % Update at what rate (100 Hz?)
-//            tmpLLA = [ gGpsDataPtr.pos(X_AXIS) * D2R;
-//                       gGpsDataPtr.pos(Y_AXIS) * D2R;
+//            tmpLLA = [ gGpsDataPtr.pos(X_AXIS) * DEG_TO_RAD;
+//                       gGpsDataPtr.pos(Y_AXIS) * DEG_TO_RAD;
 //                       gGpsDataPtr.pos(Z_AXIS) ];
 //            RNinE = InvRneFromLLA( tmpLLA );   % matches the inverse calculation
 //            r_E = Base2ECEF( gKF.Position_N, rGPS0_E, RNinE );    %
@@ -325,9 +366,9 @@ void ComputeSystemInnovation_Vel(void)
 {
     // ----Compute the innovation vector, nu----
     // Velocity error
-    gKalmanFilter.nu[STATE_VX] = (real)gGpsDataPtr->vNed[X_AXIS] - gKalmanFilter.Velocity_N[X_AXIS];
-    gKalmanFilter.nu[STATE_VY] = (real)gGpsDataPtr->vNed[Y_AXIS] - gKalmanFilter.Velocity_N[Y_AXIS];
-    gKalmanFilter.nu[STATE_VZ] = (real)gGpsDataPtr->vNed[Z_AXIS] - gKalmanFilter.Velocity_N[Z_AXIS];
+    gKalmanFilter.nu[STATE_VX] = (real)gEKFInputData.vNed[X_AXIS] - gKalmanFilter.Velocity_N[X_AXIS];
+    gKalmanFilter.nu[STATE_VY] = (real)gEKFInputData.vNed[Y_AXIS] - gKalmanFilter.Velocity_N[Y_AXIS];
+    gKalmanFilter.nu[STATE_VZ] = (real)gEKFInputData.vNed[Z_AXIS] - gKalmanFilter.Velocity_N[Z_AXIS];
 
     gKalmanFilter.nu[STATE_VX] = _LimitValue(gKalmanFilter.nu[STATE_VX], gAlgorithm.Limit.Innov.velocityError);
     gKalmanFilter.nu[STATE_VY] = _LimitValue(gKalmanFilter.nu[STATE_VY], gAlgorithm.Limit.Innov.velocityError);
@@ -353,15 +394,27 @@ void ComputeSystemInnovation_Att(void)
     gKalmanFilter.nu[STATE_PITCH] = _LimitValue(gKalmanFilter.nu[STATE_PITCH], gAlgorithm.Limit.Innov.attitudeError);
 
     // ----- Yaw -----
-    // Separating the two was meant to save time but it doesn't seem to.  However, keep for now.
-    if( magUsedInAlgorithm() ) {
+    // CHANGED TO SWITCH BETWEEN GPS AND MAG UPDATES
+    if( useMagHeading ) {
+        // ORIG
+        // When using VG or GPS but the velocity is too low, use the
+        //   magnetometer-derived heading.
         gKalmanFilter.nu[STATE_YAW]   = gKalmanFilter.measuredEulerAngles[YAW] -
                                         gKalmanFilter.eulerAngles[YAW];
-        gKalmanFilter.nu[STATE_YAW]   = _UnwrapAttitudeError(gKalmanFilter.nu[STATE_YAW]);
-        gKalmanFilter.nu[STATE_YAW]   = _LimitValue(gKalmanFilter.nu[STATE_YAW], gAlgorithm.Limit.Innov.attitudeError);
     } else {
+        // When updating using GPS readings, newGPSDataFlag will set the error
+        //   to zero when performing the VG-type updates as it is reset after
+        //   each pass through the gps logic (above).
+        if( newGPSDataFlag ) {
+            gKalmanFilter.nu[STATE_YAW] = (real)gEKFInputData.trueCourse * (real)DEG_TO_RAD -
+                                          gKalmanFilter.eulerAngles[YAW];
+        } else {
+            // ORIG
         gKalmanFilter.nu[STATE_YAW] = (real)0.0;
     }
+    }
+    gKalmanFilter.nu[STATE_YAW] = _UnwrapAttitudeError(gKalmanFilter.nu[STATE_YAW]);
+    gKalmanFilter.nu[STATE_YAW] = _LimitValue(gKalmanFilter.nu[STATE_YAW], gAlgorithm.Limit.Innov.attitudeError);
 
     // When the filtered yaw-rate is above certain thresholds then reduce the
     //   attitude-errors used to update roll and pitch.
@@ -425,7 +478,7 @@ uint8_t _GenerateObservationJacobian_AHRS(void)
     gKalmanFilter.H[ROLL][STATE_Q3] = multiplier * ( xPhi*gKalmanFilter.quaternion[Q2] +
                                                     -yPhi*gKalmanFilter.quaternion[Q3]);
 
-    /// Pitch
+    /// Pitch (including modifications for |q| = 1 constraint)
     uTheta = (real)2.0 * ( gKalmanFilter.quaternion[Q1] * gKalmanFilter.quaternion[Q3] -
                       gKalmanFilter.quaternion[Q0] * gKalmanFilter.quaternion[Q2] );
 
@@ -435,10 +488,14 @@ uint8_t _GenerateObservationJacobian_AHRS(void)
     }
     multiplier = (real)2.0 / denom;
 
-    gKalmanFilter.H[PITCH][STATE_Q0] = multiplier * ( gKalmanFilter.quaternion[Q2]);
-    gKalmanFilter.H[PITCH][STATE_Q1] = multiplier * (-gKalmanFilter.quaternion[Q3]);
-    gKalmanFilter.H[PITCH][STATE_Q2] = multiplier * ( gKalmanFilter.quaternion[Q0]);
-    gKalmanFilter.H[PITCH][STATE_Q3] = multiplier * (-gKalmanFilter.quaternion[Q1]);
+    gKalmanFilter.H[PITCH][STATE_Q0] = multiplier * ( gKalmanFilter.quaternion[Q2] + 
+                                                      uTheta * gKalmanFilter.quaternion[Q0] );
+    gKalmanFilter.H[PITCH][STATE_Q1] = multiplier * (-gKalmanFilter.quaternion[Q3] + 
+                                                      uTheta * gKalmanFilter.quaternion[Q1] );
+    gKalmanFilter.H[PITCH][STATE_Q2] = multiplier * ( gKalmanFilter.quaternion[Q0] + 
+                                                      uTheta * gKalmanFilter.quaternion[Q2] );
+    gKalmanFilter.H[PITCH][STATE_Q3] = multiplier * (-gKalmanFilter.quaternion[Q1] + 
+                                                      uTheta * gKalmanFilter.quaternion[Q3] );
 
     /// Yaw
     yPsi = (real)2.0 * ( gKalmanFilter.quaternion[Q1] * gKalmanFilter.quaternion[Q2] +
@@ -481,9 +538,15 @@ void _GenerateObservationCovariance_AHRS(void)
         // DEBUG: Probably not needed
         memset(gKalmanFilter.R, 0, sizeof(gKalmanFilter.R));
 
+#ifdef INS_OFFLINE
+        // This value is set based on the version string specified in the 
+        //   simulation configuration file, ekfSim.cfg
+        uint8_t sysRange = gSimulation.sysRange;
+#else
         // This value is set based on the version string loaded into the unit
         //   via the system configuration load
         uint8_t sysRange = platformGetSysRange(); // from system config
+#endif
 
         // Set the matrix, R, based on whether the system is operating in high
         //   or low-gain (is the acceleration above or below the acceleration
@@ -520,44 +583,104 @@ void _GenerateObservationCovariance_AHRS(void)
 
     // High/low-gain switching to increase the EKF gain when the system is
     //   static
+    //
+    // Low-gain concept -- Increasing R reduces the gain and results in less of
+    //                     the measurement being used to update the state.
+    //
+    //                     By passing drive-test data through the AHRS
+    //                     simulation, a multiplier of 400.0 on R (when in low-
+    //                     gain operation) seems to result in a better than
+    //                     nominal solution (for the drive-test).
     if( (gAlgorithm.state == HIGH_GAIN_AHRS) ||
         (gAlgorithm.linAccelSwitch == TRUE) )
     {
         // High-Gain -- The process by which the values were selected is described above.
         gKalmanFilter.R[STATE_ROLL][STATE_ROLL]   = Rnom;
         gKalmanFilter.R[STATE_PITCH][STATE_PITCH] = gKalmanFilter.R[STATE_ROLL][STATE_ROLL];
-        gKalmanFilter.R[STATE_YAW][STATE_YAW] = (real)1.0e-2;
     } else {
-        // Low-gain concept -- Increasing R reduces the gain and results in less of the
-        //                     measurement being used to update the state.
-        //
-        //                     By passing drive-test data through the AHRS simulation,
-        //                     a multiplier of 400.0 on R (when in low-gain operation)
-        //                     seems to result in a better than nominal solution (for
-        //                     the drive-test).
+        // Low-Gain -- Increase R to reduce gain
         gKalmanFilter.R[STATE_ROLL][STATE_ROLL]   = (real)400.0 * Rnom;
         gKalmanFilter.R[STATE_PITCH][STATE_PITCH] = (real)400.0 * Rnom;
-        gKalmanFilter.R[STATE_YAW][STATE_YAW]   = (real)1.0e-1;
+#ifdef INS_OFFLINE
+        // Modify simulation values
+        gKalmanFilter.R[STATE_ROLL][STATE_ROLL]   = gSimulation.measCovarMult_roll  * gKalmanFilter.R[STATE_ROLL][STATE_ROLL];
+        gKalmanFilter.R[STATE_PITCH][STATE_PITCH] = gSimulation.measCovarMult_pitch * gKalmanFilter.R[STATE_PITCH][STATE_PITCH];
+#endif
     }
 
-    // For 'large' roll/pitch angles, increase R-yaw to decrease the effect of
-    //   update due to potential uncompensated z-axis magnetometer readings from
-    //   affecting the yaw-update.
-    if( ( gKalmanFilter.eulerAngles[ROLL]  > TEN_DEGREES_IN_RAD ) ||
-        ( gKalmanFilter.eulerAngles[PITCH] > TEN_DEGREES_IN_RAD ) )
-    {
-        gKalmanFilter.R[STATE_YAW][STATE_YAW]   = (real)0.2;
-    }
-
-    // Adjust the roll R-value based on the predicted pitch.  The multiplier is due to
-    //   the fact that R changes with phi and theta.  Either make it big enough to work
-    //   with all angles or vary it with the angle.
+    // Adjust the roll R-value based on the predicted pitch.  The multiplier is
+    //   due to the fact that R changes with phi and theta.  Either make it big
+    //   enough to work with all angles or vary it with the angle.
     real mult;
     real pitchSq = gKalmanFilter.eulerAngles[PITCH] * gKalmanFilter.eulerAngles[PITCH];
     mult = (real)(1.0 + 0.65 * pitchSq);
 
     //real mult = (real)1.0 + (real)0.65 * gKalmanFilter.eulerAngles[PITCH] * gKalmanFilter.eulerAngles[PITCH];
     gKalmanFilter.R[STATE_ROLL][STATE_ROLL] = mult * mult * gKalmanFilter.R[STATE_ROLL][STATE_ROLL];
+
+    // Yaw
+    // ------ From NovAtel's description of BESTVEL: ------
+    //   Velocity (speed and direction) calculations are computed from either
+    //   Doppler or carrier phase measurements rather than from pseudorange
+    //   measurements. Typical speed accuracies are around 0.03m/s (0.07 mph,
+    //   0.06 knots).
+    //
+    //   Direction accuracy is derived as a function of the vehicle speed. A
+    //   simple approach would be to assume a worst case 0.03 m/s cross-track
+    //   velocity that would yield a direction error function something like:
+    //
+    //   d (speed) = tan-1(0.03/speed)
+    //
+    //   For example, if you are flying in an airplane at a speed of 120 knots
+    //   or 62 m/s, the approximate directional error will be:
+    //
+    //   tan-1 (0.03/62) = 0.03 degrees
+    //
+    //   Consider another example applicable to hiking at an average walking
+    //   speed of 3 knots or 1.5 m/s. Using the same error function yields a
+    //   direction error of about 1.15 degrees.
+    //
+    //   You can see from both examples that a faster vehicle speed allows for a
+    //   more accurate heading indication. As the vehicle slows down, the
+    //   velocity information becomes less and less accurate. If the vehicle is
+    //   stopped, a GNSS receiver still outputs some kind of movement at speeds
+    //   between 0 and 0.5 m/s in random and changing directions. This
+    //   represents the noise and error of the static position.
+
+    // ----- Yaw -----
+    // CHANGED TO SWITCH BETWEEN GPS AND MAG UPDATES
+    if( useMagHeading || newGPSDataFlag == 0 ) {
+        // MAGNETOMETERS
+        if( (gAlgorithm.state == HIGH_GAIN_AHRS) ||
+            (gAlgorithm.linAccelSwitch == TRUE) )
+        {
+            // --- High-Gain ---
+            //gKalmanFilter.R_INS[STATE_YAW][STATE_YAW]   = (real)1.0e-3;  // v14.6 values
+            //gKalmanFilter.R[STATE_YAW][STATE_YAW]   = (real)2.0e-05; //(for sig = 1e-3)
+            gKalmanFilter.R[STATE_YAW][STATE_YAW] = (real)1.0e-2;  // jun4
+        } else {
+            // --- Low-Gain ---
+            gKalmanFilter.R[STATE_YAW][STATE_YAW]   = (real)1.0e-1; // v14.6 values
+            //gKalmanFilter.R[STATE_YAW][STATE_YAW]   = (real)0.02; //(for sig = 1e-3)
+        }
+
+        // For 'large' roll/pitch angles, increase R-yaw to decrease the effect
+        //   of update due to potential uncompensated z-axis magnetometer
+        //   readings from affecting the yaw-update.
+        if( ( gKalmanFilter.eulerAngles[ROLL]  > TEN_DEGREES_IN_RAD ) ||
+            ( gKalmanFilter.eulerAngles[PITCH] > TEN_DEGREES_IN_RAD ) )
+        {
+            gKalmanFilter.R[STATE_YAW][STATE_YAW]   = (real)0.2;
+        }
+    } else {
+        // When updating using GPS readings, newGPSDataFlag will set the error
+        //   to zero when performing the VG-type updates as it is reset after
+        //   each pass through the gps logic (above).
+        if( newGPSDataFlag ) {
+            float temp = (float)atan( 0.05 / gEKFInputData.rawGroundSpeed );
+            gKalmanFilter.R[STATE_YAW][STATE_YAW] = temp; // * temp;
+        }
+    }
 }
 
 
@@ -577,6 +700,24 @@ void _GenerateObservationCovariance_INS(void)
         gKalmanFilter.R[STATE_VY][STATE_VY] = gKalmanFilter.R[STATE_VX][STATE_VX];
         gKalmanFilter.R[STATE_VZ][STATE_VZ] = gKalmanFilter.R[STATE_VX][STATE_VX];
     }
+
+    // Use the GPS-provided horizontal and vertical accuracy values to populate
+    //   the covariance values.
+    gKalmanFilter.R[STATE_RX][STATE_RX] = gEKFInputData.GPSHorizAcc * gEKFInputData.GPSHorizAcc;
+    gKalmanFilter.R[STATE_RY][STATE_RY] = gKalmanFilter.R[STATE_RX][STATE_RX];
+    gKalmanFilter.R[STATE_RZ][STATE_RZ] = gEKFInputData.GPSVertAcc * gEKFInputData.GPSVertAcc;
+
+    // Scale the best velocity error by HDOP then multiply by the z-axis angular
+    //   rate PLUS one (to prevent the number from being zero) so the velocity
+    //   update during high-rate turns is reduced.
+    float temp = (real)0.0625 * gEKFInputData.HDOP;  // 0.0625 = 0.05 / 0.8
+    gKalmanFilter.R[STATE_VX][STATE_VX] = temp * ((real)1.0 + fabs(gAlgorithm.filteredYawRate) * (real)RAD_TO_DEG );
+    gKalmanFilter.R[STATE_VX][STATE_VX] = gKalmanFilter.R[STATE_VX][STATE_VX] * gKalmanFilter.R[STATE_VX][STATE_VX];
+    gKalmanFilter.R[STATE_VY][STATE_VY] = gKalmanFilter.R[STATE_VX][STATE_VX];
+
+    // z-axis velocity isn't really a function of yaw-rate and hdop
+    //gKalmanFilter.R[STATE_VZ][STATE_VZ] = gKalmanFilter.R[STATE_VX][STATE_VX];
+    gKalmanFilter.R[STATE_VZ][STATE_VZ] = (float)(0.1 * 0.1);
 }
 
 
@@ -601,9 +742,9 @@ void Update_Att(void)
     //                     H is very sparse!  P is fully populated)
     // Update P from the P, H, and R matrices: P = HxPxHTranspose + R
     //   1) PxHTranspose is computed first
+    memset(PxHTranspose, 0, sizeof(PxHTranspose));
     for (rowNum = 0; rowNum < ROWS_IN_P; rowNum++) {
         for (colNum = 0; colNum < ROWS_IN_H; colNum++) {
-            PxHTranspose[rowNum][colNum] = 0.0;
             for (multIndex = RLE_H[colNum][0]; multIndex <= RLE_H[colNum][1]; multIndex++) {
                 PxHTranspose[rowNum][colNum] = PxHTranspose[rowNum][colNum] +
                     gKalmanFilter.P[rowNum][multIndex] * gKalmanFilter.H[colNum][multIndex];
@@ -613,6 +754,7 @@ void Update_Att(void)
 
     //   2) Use gKalmanFilter.P as a temporary variable to hold HxPxHTranspose
     //      to reduce the number of "large" variables on the heap
+#if 0
     for (rowNum = 0; rowNum < 3; rowNum++) {
         for (colNum = 0; colNum < 3; colNum++) {
             HxPxHTranspose[rowNum][colNum] = 0.0;
@@ -622,6 +764,20 @@ void Update_Att(void)
             }
         }
     }
+#else
+    // HPH' is symmetric so only need to multiply one half and reflect the values
+    //   across the diagonal
+    for (rowNum = 0; rowNum < 3; rowNum++) {
+        for (colNum = rowNum; colNum < 3; colNum++) {
+            HxPxHTranspose[rowNum][colNum] = 0.0;
+            for (multIndex = RLE_H[rowNum][0]; multIndex <= RLE_H[rowNum][1]; multIndex++) {
+                HxPxHTranspose[rowNum][colNum] = HxPxHTranspose[rowNum][colNum] +
+                    gKalmanFilter.H[rowNum][multIndex] * PxHTranspose[multIndex][colNum];
+            }
+            HxPxHTranspose[colNum][rowNum] = HxPxHTranspose[rowNum][colNum];
+        }
+    }
+#endif
 
     // S = HxPxHTranspose + R (rows 7:10 and cols 7:10 of P PLUS diagonal of R)
     S_3x3[ROLL][ROLL]   = HxPxHTranspose[ROLL][ROLL]   + gKalmanFilter.R[STATE_ROLL][STATE_ROLL];
@@ -640,10 +796,24 @@ void Update_Att(void)
     matrixInverse_3x3(&S_3x3[0][0], &SInverse_3x3[0][0]);
 
     // Compute the Kalman gain: K = P*HTrans*SInv
+#if 1
     AxB( &PxHTranspose[0][0],
          &SInverse_3x3[0][0],
          ROWS_IN_P, ROWS_IN_H, ROWS_IN_H,
          &gKalmanFilter.K[0][0] );
+#else
+    // This doesn't work.  Need to figure out why.
+    for (rowNum = 0; rowNum < ROWS_IN_P; rowNum++) {
+        for (colNum = 0; colNum < ROWS_IN_H; colNum++) {
+            gKalmanFilter.K[rowNum][colNum] = 0.0;
+            for (multIndex = 0; multIndex < ROWS_IN_H; multIndex++) {
+                gKalmanFilter.K[rowNum][colNum] = gKalmanFilter.K[rowNum][colNum] +
+                                                     PxHTranspose[rowNum][multIndex] * 
+                                                     SInverse_3x3[multIndex][colNum];
+            }
+        }
+    }
+#endif
 
     // Compute attitude-quaternion updates: Dx = K*nu
     // NOTE: Can access nu in the elements that the attitude error is stored BUT the
@@ -698,6 +868,7 @@ void Update_Att(void)
     memset(deltaP_tmp, 0, sizeof(deltaP_tmp));
     //   2) Use gKalmanFilter.P as a temporary variable to hold FxPxFTranspose
     //      to reduce the number of "large" variables on the heap
+#if 0
     for (rowNum = 0; rowNum < ROWS_IN_K; rowNum++) {
         for (colNum = 0; colNum < COLS_IN_P; colNum++) {
             for (multIndex = RLE_KxH[rowNum][0]; multIndex <= RLE_KxH[rowNum][1]; multIndex++) {
@@ -706,6 +877,19 @@ void Update_Att(void)
             }
         }
     }
+#else
+    // deltaP is symmetric so only need to multiply one half and reflect the values
+    //   across the diagonal
+    for (rowNum = 0; rowNum < ROWS_IN_K; rowNum++) {
+        for (colNum = rowNum; colNum < COLS_IN_P; colNum++) {
+            for (multIndex = RLE_KxH[rowNum][0]; multIndex <= RLE_KxH[rowNum][1]; multIndex++) {
+                deltaP_tmp[rowNum][colNum] = deltaP_tmp[rowNum][colNum] +
+                    KxH[rowNum][multIndex] * gKalmanFilter.P[multIndex][colNum];
+            }
+            deltaP_tmp[colNum][rowNum] = deltaP_tmp[rowNum][colNum];
+        }
+    }
+#endif
 
     // Commenting out the following doesn't really save any time
 //    // Zero out P values not affected by attitude information
@@ -716,6 +900,7 @@ void Update_Att(void)
 //        }
 //    }
 
+#if 0
     // gKF.P = gKF.P - deltaP;
     AMinusB( &gKalmanFilter.P[0][0],
              &deltaP_tmp[0][0], //&deltaP[0][0],
@@ -725,6 +910,17 @@ void Update_Att(void)
     // Ensure P is symmetric
     ForceMatrixSymmetry( &gKalmanFilter.P[0][0],
                          ROWS_IN_P, COLS_IN_P );
+#else
+    // P is symmetric so only need to multiply one half and reflect the values
+    //   across the diagonal
+    for (rowNum = 0; rowNum < ROWS_IN_P; rowNum++) {
+        for (colNum = rowNum; colNum < COLS_IN_P; colNum++) {
+            gKalmanFilter.P[rowNum][colNum] = gKalmanFilter.P[rowNum][colNum] -
+                                              deltaP_tmp[rowNum][colNum];
+        }
+        gKalmanFilter.P[colNum][rowNum] = gKalmanFilter.P[rowNum][colNum];
+    }
+#endif
 }
 
 
@@ -736,7 +932,7 @@ real KxHxP[NUMBER_OF_EKF_STATES][NUMBER_OF_EKF_STATES];
 //   with Pr and Pv).  Want to verify this...
 void Update_Pos(void)
 {
-    real nu_pos[3];
+    real nu_pos[NUM_AXIS];
     nu_pos[0] = gKalmanFilter.nu[STATE_RX];
     nu_pos[1] = gKalmanFilter.nu[STATE_RY];
     nu_pos[2] = gKalmanFilter.nu[STATE_RZ];
@@ -827,7 +1023,7 @@ void Update_Pos(void)
 //   bias states (along with Pv, Pq, and Pab).  Wwant to verify this...
 void Update_Vel(void)
 {
-    real nu_vel[3];
+    real nu_vel[NUM_AXIS];
     nu_vel[0] = gKalmanFilter.nu[STATE_VX];
     nu_vel[1] = gKalmanFilter.nu[STATE_VY];
     nu_vel[2] = gKalmanFilter.nu[STATE_VZ];
@@ -928,7 +1124,7 @@ real TILT_YAW_SWITCH_GAIN = (real)0.05;
 static void _TurnSwitch(void)
 {
     static real minSwitch = (real)0.0, maxSwitch = (real)0.0;
-    static float turnSwitchThresholdPast = 0.0;
+    static real turnSwitchThresholdPast = (real)0.0;
     static real linInterpSF;
 
     real absYawRate;
@@ -998,5 +1194,89 @@ static real _LimitValue(real value, real limit)
     }
 
     return value;
+}
+
+
+// Returns true when the system is ready to update (based on the timer values
+//   and the desired update rate)
+static BOOL _CheckForUpdateTrigger(uint8_t updateRate)
+{
+    //
+    uint8_t oneHundredHzCntr;
+    uint8_t updateFlag = 0;
+
+    //
+    switch( updateRate ){
+        // ten-hertz update
+        case 10:
+            if( timer.subFrameCntr == 0 ) {
+                updateFlag = 1;
+            }
+            break;
+
+        // twenty-hertz update
+        case 20:
+            if( timer.subFrameCntr == 0 ||
+                timer.subFrameCntr == 5 )
+            {
+                updateFlag = 1;
+            }
+            break;
+
+        // twenty-hertz update
+        case 25:
+            oneHundredHzCntr = 10 * timer.tenHertzCntr +
+                                    timer.subFrameCntr;
+
+            // 
+            if( oneHundredHzCntr ==  0 ||
+                oneHundredHzCntr ==  4 ||
+                oneHundredHzCntr ==  8 ||
+                oneHundredHzCntr == 12 ||
+                oneHundredHzCntr == 16 ||
+                oneHundredHzCntr == 20 ||
+                oneHundredHzCntr == 24 ||
+                oneHundredHzCntr == 28 ||
+                oneHundredHzCntr == 32 ||
+                oneHundredHzCntr == 36 ||
+                oneHundredHzCntr == 40 ||
+                oneHundredHzCntr == 44 ||
+                oneHundredHzCntr == 48 ||
+                oneHundredHzCntr == 52 ||
+                oneHundredHzCntr == 56 ||
+                oneHundredHzCntr == 60 ||
+                oneHundredHzCntr == 64 ||
+                oneHundredHzCntr == 68 ||
+                oneHundredHzCntr == 72 ||
+                oneHundredHzCntr == 76 ||
+                oneHundredHzCntr == 80 ||
+                oneHundredHzCntr == 84 ||
+                oneHundredHzCntr == 88 ||
+                oneHundredHzCntr == 92 ||
+                oneHundredHzCntr == 96 )
+            {
+                updateFlag = 1;
+            }
+            break;
+
+        // fifty-hertz update
+        case 50:
+            if( timer.subFrameCntr == 0 ||
+                timer.subFrameCntr == 2 ||
+                timer.subFrameCntr == 4 ||
+                timer.subFrameCntr == 6 ||
+                timer.subFrameCntr == 8 )
+            {
+                updateFlag = 1;
+            }
+            break;
+
+        // fifty-hertz update
+        case 100:
+            updateFlag = 1;
+            break;
+    }
+
+    return updateFlag;
 }
 

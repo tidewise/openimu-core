@@ -27,16 +27,11 @@ limitations under the License.
 #define __BOARD_DEFINITION_H
 
 #include "stm32f4xx_conf.h"
-
-#define XBOW_EEPROM_FLASH_SECTOR            FLASH_Sector_2
-#define USER_EEPROM_FLASH_SECTOR            FLASH_Sector_3
-#define EEPROM_FLASH_VOLTAGE                VoltageRange_3 // FIXME: this depends on the processor voltage
-#define USER_EEPROM_SECTOR_SIZE             0x4000         // 16K sector 3
-
 #define	APP_NVIC_OFFSET			0X10000
 /// == set up the device's DEBUG-serial as USART ==
 /// USART (serial interface) defines: TX - A9
 ///                                   Rx - A10
+#define kDebug_UART                        2 
 #define DEBUG_USART                        USART1
 #define DEBUG_USART_CLK                    RCC_APB2Periph_USART1
 #define DEBUG_USART_TX_PIN                 GPIO_Pin_9

@@ -9,21 +9,15 @@
 
 #include <string.h>   // memset
 #include <math.h>     // fabs
-
 #include "algorithm.h"        // gAlgorithm
-
 #include "Indices.h"      // IND
 #include "StateIndices.h" // STATE_IND
 #include "AlgorithmLimits.h"       // LIMIT
-#include "TimingVars.h"   // timer
-
 #include "VectorMath.h"          // VectorNormalize
 #include "QuaternionMath.h"      // EulerAnglesToQuaternion, QuaternionToEulerAngles
 #include "TransformationMath.h"  // FieldVectorsToEulerAngles
-
 #include "EKF_Algorithm.h"
 #include "PredictFunctions.h"
-
 #include "MagAlign.h"
 #include "GpsData.h"  // gGpsData
 #include "platformAPI.h"  
@@ -43,7 +37,8 @@ static uint8_t _InitINSFilter(void);
 // StabilizeSystem: Run for a prescribed period to let the sensors settle.
 void StabilizeSystem(void)
 {
-    // Decrement timer (initial value is set to the calling frequency of the EKF)
+    // Decrement timer (initial value is set based on the calling frequency of
+    //   the EKF)
     gAlgorithm.stateTimer = gAlgorithm.stateTimer - 1;
 
     // Upon timeout prepare for transition to the next stage of the EKF
@@ -78,15 +73,16 @@ void StabilizeSystem(void)
 //   a prescribed period and averaging it.
 void InitializeAttitude(void)
 {
-    // Decrement timer at 100 Hz
+    // Decrement timer
     gAlgorithm.stateTimer = gAlgorithm.stateTimer - 1;
 
     /// Sum the acceleration and magnetic-field vectors (from the end of the
     ///   initialization stage)
     _AccumulateFieldVectors();
 
-    // Quasi-static check: check for motion over threshold. If detected, reset the
-    //                     accumulation variables and restart initialization phase
+    // Quasi-static check: check for motion over threshold. If detected, reset
+    //                     the accumulation variables and restart initialization
+    //                     phase.
     if ((fabs(gEKFInputData.angRate_B[X_AXIS]) > LIMIT_QUASI_STATIC_STARTUP_RATE) ||
         (fabs(gEKFInputData.angRate_B[Y_AXIS]) > LIMIT_QUASI_STATIC_STARTUP_RATE) ||
         (fabs(gEKFInputData.angRate_B[Z_AXIS]) > LIMIT_QUASI_STATIC_STARTUP_RATE))
@@ -158,7 +154,9 @@ void InitializeAttitude(void)
 }
 
 
-// HG_To_LG_Transition_Test: 
+// HG_To_LG_Transition_Test: Transition from high-gain to low-gain.  Only check
+//                           is that the bias isn't greater than 10 deg/sec (this
+//                           is probably not a good check).
 void HG_To_LG_Transition_Test(void)
 {
     // Decrement timer if 'dynamicMotion' TRUE (setting FALSE will cause the
@@ -207,7 +205,7 @@ void HG_To_LG_Transition_Test(void)
 }
 
 
-// This logic is only called until transition to INS from LG_AHRS then it is
+// This logic is only called upon transition to INS from LG_AHRS then it is
 //   not called unless the algorithm reverts back to HG_AHRS, which will
 //   cause the system to pass through LG_AHRS on its way to INS.
 void LG_To_INS_Transition_Test(void)
@@ -247,6 +245,7 @@ void LG_To_INS_Transition_Test(void)
             //   then perform calculations to determine if transition is possible
             if (gGpsDataPtr->gpsValid) {
                 // Sync the algorithm and GPS ITOW
+                // JSM -- Use EKF input structure
                 gAlgorithm.itow = gGpsDataPtr->itow;
 
                 // Calculate the in-plane velocity from GPS and determine if it
@@ -312,7 +311,8 @@ void LG_To_INS_Transition_Test(void)
 #endif
                     gAlgorithm.state = INS_SOLUTION;
 
-                    // We have a good GPS reading now - set this variable so we don't drop INS right away
+                    // We have a good GPS reading now - set this variable so we
+                    //   don't drop into INS right away
                     gAlgorithm.timeOfLastGoodGPSReading = gGpsDataPtr->itow;
 
                     // Prepare for INS
@@ -320,6 +320,9 @@ void LG_To_INS_Transition_Test(void)
 
                     // Set linear-acceleration switch variables
                     gAlgorithm.linAccelSwitchCntr = 0;
+
+                    // Reset the 'new GPS Data' Flag
+                    gGpsDataPtr->updateFlagForEachCall &= 0xFFFFFFFC;
 
                     // Save off vel time
                     //gpsVelTime         = gGpsDataPtr->itow;
@@ -413,7 +416,7 @@ static uint8_t _InitINSFilter(void)
 }
 
 
-//INS_To_AHRS_Transition_Test:  Drop back to AHRS operation if...
+//INS_To_AHRS_Transition_Test:  Drop back to LG AHRS operation if...
 //   1) GPS drops out for more than 3 seconds
 //   2) magnetometer data not available AND at rest too long
 //   3) magnetic alignment being performed
@@ -456,9 +459,9 @@ void INS_To_AHRS_Transition_Test(void)
 
 #ifdef DISPLAY_DIAGNOSTIC_MSG
         if (gConfiguration.userBehavior.bit.useMags) {
-            TimingVars_DiagnosticMsg("Transitioning to high-gain AHRS mode");
+            TimingVars_DiagnosticMsg("Transitioning to low-gain AHRS mode");
         } else {
-            TimingVars_DiagnosticMsg("Transitioning to high-gain VG mode");
+            TimingVars_DiagnosticMsg("Transitioning to low-gain VG mode");
         }
 #endif
 
@@ -596,6 +599,7 @@ static BOOL _AverageFieldVectors(uint16_t pointsToAverage)
 }
 
 
+//
 static void _ResetAlgorithm(void)
 {
     int elemNum;

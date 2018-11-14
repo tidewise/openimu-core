@@ -122,13 +122,38 @@ void DebugPrintFloat(const char *s,
 {
     char numberString[11];
     int i;
+    int16_t tmp;
 
+    // Print the leading (user specified) string
     DebugPrintString(s);
-    i = (int) f; ///< just get the number to the left of the decimal
-    if (i == 0 && f < 0) {
-        DebugPrintString("-");
+
+    // The following logic aligns the values on the screen by
+    //   adding white space prior to the string, based on the
+    //   value.
+    //
+    // Get the number to the left of the decimal
+    i = (int)f;
+    if(i < 0) {
+        tmp = -(int16_t)i;
+    } else {
+        tmp = (int16_t)i;
     }
-    DebugPrintInt("", i);
+
+    if(tmp < 10) {
+        DebugPrintString("  ");
+    } else if(tmp < 100) {
+        DebugPrintString(" ");
+    } else if(tmp < 1000) {
+        DebugPrintString("");
+    }
+
+    // Print the sign of the number followed by the value
+    if(f < 0) {
+        DebugPrintString("-");
+    } else {
+        DebugPrintString(" ");
+    }
+    DebugPrintInt("", tmp);
 
     /// now get the number of significant digits to the right
     f = f - i;
@@ -148,6 +173,7 @@ void DebugPrintFloat(const char *s,
         f = f - i;
     }
 }
+
 
 /** ***************************************************************************
  * @name DebugPrintEndLine()
@@ -275,3 +301,4 @@ int  tprintf(char *format, ...)
 
   return len;
 }
+

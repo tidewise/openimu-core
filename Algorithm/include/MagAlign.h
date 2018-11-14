@@ -37,7 +37,15 @@ typedef struct {
     real            hardIronBias[2];
     real            softIronAngle;
     real            softIronScaleRatio;
+} ComputedMagneticParams;
+
+typedef struct {
+    real            hardIronBias[2];
+    real            softIronAngle;
+    real            softIronScaleRatio;
     real            SF[4];
+
+    ComputedMagneticParams estParams;
 
     volatile int    state;
 } MagAlignStruct;

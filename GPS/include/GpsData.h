@@ -45,7 +45,7 @@ This Data structure is not only used for all GPS interface and process
 but also used to be accessed by other modules rather than GPS files.
 */
 typedef struct  {
-    int                  gpsValid;
+    BOOL                 gpsValid;
     int                  latSign;
     int                  lonSign;
     long double          lat; // concatinated from int components [deg.dec]
@@ -74,7 +74,7 @@ typedef struct  {
     /// compatible with Ublox driver FIXME should these be seperate data structure?
     unsigned char        ubloxClassID;
     unsigned char        ubloxMsgID;
-    signed long          LonLatH[3]; // SiRF Lat Lon[deg] * 10^7 Alt ellipse [m]*100
+    signed long          LonLatH[3]; // SiRF Lat Lon[deg] * 10^7 Alt ellipse [m]*100 <-- UNUSED
     char                 GPSFix;
     float                HDOP;       // Horizontal Dilution Of Precision x.x
     double               GPSVelAcc;
@@ -100,7 +100,7 @@ typedef struct  {
     unsigned long        reconfigGPSCounter;
 
     /// GPS Baudrate and protocal: -1, 0,1, 2, 3 corresponding to
-    int                  GPSbaudRate; /// AutoBaud, 9600, 19200, 38400, 57600
+    int                  GPSbaudRate;    /// 4800, 9600, 19200, 38400, 57600, 115200, etc
     /// AutoDect, Ublox Binary, NovAtel binary, NovAtel ASCII, NMEA
     enumGPSProtocol      GPSProtocol;
 
@@ -109,6 +109,18 @@ typedef struct  {
     unsigned char        GPSTopLevelConfig; // UBLOX
     unsigned char        resetAutoBaud;
     unsigned char        autoBaudCounter;
+
+    //uint8_t              sirfInitialized;
+    //float                latQ;
+    //float                lonQ;
+    //float                hgtQ;
+    //uint8_t              useSigmas;
+
+    float                GPSHorizAcc;
+    float                GPSVertAcc;
+
+    int                  numSatelites;
+
 } GpsData_t;
 
 extern GpsData_t *gGpsDataPtr; // definition in driverGPSAllentrance.c

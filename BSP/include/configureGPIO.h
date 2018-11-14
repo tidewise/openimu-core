@@ -34,8 +34,4 @@ void InitPin_GPIO( uint32_t      PeriphClock,
 void InitBoardConfiguration_GPIO(void);
 uint8_t ReadUnitConfiguration_GPIO(void);
 
-/// commands to toggle the IO3 (B11) Debug line
-//#define IO3Pin_SetHigh(); GPIOB->BSRRL = GPIO_Pin_11; // SET IO3 High
-//#define IO3Pin_SetLow();  GPIOB->BSRRH = GPIO_Pin_11; // SET IO3 Low
-
 #endif

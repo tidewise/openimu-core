@@ -20,12 +20,11 @@
 #include "PredictFunctions.h"
 #include "UpdateFunctions.h"
 #include "AlgorithmLimits.h"
-//#include "TimingVars.h"
 #include "platformAPI.h"
 
-KalmanFilterStruct gKalmanFilter;
-EKF_InputDataStruct  gEKFInputData;
-EKF_OutputDataStruct gEKFOutputData;
+KalmanFilterStruct    gKalmanFilter;
+EKF_InputDataStruct   gEKFInputData;
+EKF_OutputDataStruct  gEKFOutputData;
 
 // This routine is called at either 100 or 200 Hz (based upon the system
 //   configuration):
@@ -243,6 +242,16 @@ void EKF_GetEstimatedVelocity(real *Velocity_N)
 }
 
 
+// Extract the Position of the body measured in the NED-frame (N)
+void EKF_GetEstimatedLLA(double *LLA)
+{
+    // Velocity in [m/s]
+    LLA[X_AXIS] = (double)gEKFOutputData.llaDeg[X_AXIS];
+    LLA[Y_AXIS] = (double)gEKFOutputData.llaDeg[Y_AXIS];
+    LLA[Z_AXIS] = (double)gEKFOutputData.llaDeg[Z_AXIS];
+}
+
+
 // Extract the Operational Mode of the Algorithm:
 //   0: Stabilize
 //   1: Initialize
@@ -282,6 +291,33 @@ void EKF_SetInputStruct(double *accels, double *rates, double *mags, gpsDataStru
     gEKFInputData.magField_B[X_AXIS] = mags[X_AXIS];
     gEKFInputData.magField_B[Y_AXIS] = mags[Y_AXIS];
     gEKFInputData.magField_B[Z_AXIS] = mags[Z_AXIS];
+
+    // ----- Input from the GPS goes here -----
+    // Validity data
+    gEKFInputData.gpsValid   = (BOOL)gps->gpsValid;
+    gEKFInputData.updateFlag = gps->updateFlag;
+
+    // Lat/Lon/Alt data
+    gEKFInputData.lat = gps->latitude;
+    gEKFInputData.lon = gps->longitude;
+    gEKFInputData.alt = gps->altitude;
+
+    // Velocity data
+    gEKFInputData.vNed[X_AXIS] = gps->vNed[X_AXIS];
+    gEKFInputData.vNed[Y_AXIS] = gps->vNed[Y_AXIS];
+    gEKFInputData.vNed[Z_AXIS] = gps->vNed[Z_AXIS];
+
+    // Course and velocity data
+    gEKFInputData.rawGroundSpeed = gps->rawGroundSpeed;
+    gEKFInputData.trueCourse     = gps->trueCourse;
+    
+    // ITOW data
+    gEKFInputData.itow = gps->itow;
+
+    // Data quality measures
+    gEKFInputData.GPSHorizAcc = gps->GPSHorizAcc;
+    gEKFInputData.GPSVertAcc  = gps->GPSVertAcc;
+    gEKFInputData.HDOP        = gps->HDOP;
 }
 
 
@@ -343,5 +379,9 @@ void EKF_SetOutputStruct(void)
     gEKFOutputData.opMode         = gAlgorithm.state;
     gEKFOutputData.linAccelSwitch = gAlgorithm.linAccelSwitch;
     gEKFOutputData.turnSwitchFlag = gBitStatus.swStatus.bit.turnSwitch;
-}
 
+    // ------------------ Latitude and Longitude Data ------------------
+    gEKFOutputData.llaDeg[LAT] = gKalmanFilter.llaDeg[LAT];
+    gEKFOutputData.llaDeg[LON] = gKalmanFilter.llaDeg[LON];
+    gEKFOutputData.llaDeg[ALT] = gKalmanFilter.llaDeg[ALT];
+}

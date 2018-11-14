@@ -196,8 +196,6 @@ void BoardInit(void)
     //   pin low.
     GPIOB->BSRRH = GPIO_Pin_11;  // Set IO3 low
 
-    setUnitCommunicationType(UART_COMM);
-
 }
 
 void BoardGetResetStatus(char *destination, int len)

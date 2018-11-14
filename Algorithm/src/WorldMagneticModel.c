@@ -26,17 +26,9 @@ limitations under the License.
 #include "osapi.h"
 #include "WorldMagneticModel.h"
 #include "WMMInternal.h"
+#include "GpsData.h"
 
 #include "GlobalConstants.h"
-
-//#include "GpsData.h"
-
-//#include "dmu.h"// pi
-
-#ifdef INS_OFFLINE
-void OS_Delay(int ticks) {};
-#define OS_TICKS_PER_SECOND     100
-#endif
 
 
 WMMtype_Ellipsoid     Ellip;
@@ -143,7 +135,7 @@ float coeffs[91][6] = { {  0,  0,       0.0f,       0.0f,        0.0f,        0.
  * @param N/A
  * @retval N/A
  ******************************************************************************/
-void TaskWorldMagneticModel(void)
+void TaskWorldMagneticModel(void const *argument)
 {
     //
 #ifdef GPS

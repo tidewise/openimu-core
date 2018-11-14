@@ -31,8 +31,10 @@ limitations under the License.
 #define GPS_API_H
 
 #include <stdint.h>
+#include "GlobalConstants.h"
 
 void initGPSHandler(void); /// note: should pass in SPI or UART
+void initGPSDataStruct(void); /// note: should pass in SPI or UART
 void GPSHandler(void);
 
 // FIXME ECW: implement GpsWhoAmI and GpsSelfTest
@@ -52,7 +54,7 @@ uint8_t  GpsSelfTest();
 extern "C" {
 #endif
 
-void TaskGps(void);
+void TaskGps(void const *argument);
 
 #ifdef __cplusplus
 }
@@ -60,7 +62,8 @@ void TaskGps(void);
 
 typedef struct  {
     int                  gpsValid;   // 1 if data is valid
-    int                  updated;    // 1 if contains new data
+    uint8_t              updateFlag;    // 1 if contains new data
+    
     int                  latSign;    // latitude sign
     int                  lonSign;    // longitude sign 
     double               latitude;   // latitude ,  degrees 
@@ -80,8 +83,16 @@ typedef struct  {
     char                 GPSHour;      // hh
     char                 GPSMinute;    // mm
     char                 GPSSecond;    // ss
+    uint8_t              latQ;
+    uint8_t              lonQ;
+    uint8_t              hgtQ;
+    uint8_t              useSigmas;
 
+    float                GPSHorizAcc, GPSVertAcc;
+    float                HDOP;
 } gpsDataStruct_t;
+
+extern gpsDataStruct_t gGPS;
 
 /** ****************************************************************************
  * @name GetGPSData
@@ -90,6 +101,7 @@ typedef struct  {
  * @retval N/A
  ******************************************************************************/
 void  GetGPSData(gpsDataStruct_t *data);
-
+BOOL  SetGpsBaudRate(int rate, int fApply);
+BOOL  SetGpsProtocol(int protocol, int fApply);
 
 #endif /* GPS_API_H */

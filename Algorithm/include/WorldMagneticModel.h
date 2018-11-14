@@ -39,8 +39,6 @@ void WMM_GetMagVector( float    Lat,
                        float*   B,
                        float*   wmmDecl); // X - N, Y - E, Z - D
 
-extern void TaskWorldMagneticModel(void);
-
 // 
 typedef struct {
     uint32_t timeOfLastSoln;

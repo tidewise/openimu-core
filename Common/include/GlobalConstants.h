@@ -28,16 +28,11 @@ limitations under the License.
 #define APPLY     1
 #define REMOVE    0
 
+typedef int BOOL;
 
-#ifndef INS_OFFLINE
-    typedef int BOOL;
-
-    #ifndef true
-    #define true  1
-    #define false 0
-    #endif
-#else
-    typedef bool BOOL;
+#ifndef true
+#define true  1
+#define false 0
 #endif
 
 #ifndef TRUE
@@ -48,25 +43,37 @@ limitations under the License.
 #define  TWO_POW_16  65536UL
 
 // Constants
+#define  RAD_TO_DEG     57.29577951308232
+#define  DEG_TO_RAD     0.017453292519943
 #define D2R        ( 0.017453292519943 ) ///< ( PI/180.0 ) = 0.017453292519943
-#define DEG2RAD(d) ( (d) * D2R )
 #define R2D         57.29577951308232
-#define RAD2DEG     ( (r) * R2D )
+
+#define DEG2RAD(d)  ( (d) * D2R )
+#define RAD2DEG(r)  ( (r) * R2D )
+
 #define SIGMA        1.0e-8
 #define KNOT2MPSEC   5.144444444e-1
 #define SQUARE(x) ((x)*(x))
 
-#define  RAD_TO_DEG     57.29577951308232
-#define  DEG_TO_RAD     0.017453292519943
-#define  g_TO_M_SEC_SQ  9.80655
+
+// For fast inverse trigonometric functions
+#define  TAN15DEG  0.26794919243F
+#define  TAN30DEG  0.57735026919F
 
 // The following is the acceleration due to gravity at the calibration location
-#define  ACCEL_DUE_TO_GRAV  9.794259
-
-// physical constants
 #define  GRAVITY            9.80665
-#define  PI                 3.1415926535897932385
-#define  TWO_PI             6.28318530717959
+#define  ACCEL_DUE_TO_GRAV  9.794259
+#define  g_TO_M_SEC_SQ  9.80655
+
+// PI and related values
+#define  TWO_PI        6.283185307179586
+#define  PI            3.141592653589793
+#define  PI_OVER_TWO   1.570796326794897
+#define  PI_OVER_FOUR  0.785398163397448
+#define  PI_OVER_SIX   0.523598775598299
+
+#define  ONE_OVER_PI      0.318309886183791
+#define  ONE_OVER_TWO_PI  0.159154943091895
 
 // Specify constants used to limit variables in the algorithm
 #define ONE_DEGREE_IN_RAD     (0.017453292519943)
@@ -79,29 +86,9 @@ limitations under the License.
 #define TWENTY_DEGREES_IN_RAD (0.349065850398866)
 #define THREE_HUNDRED_EIGHTY_DEGREES_IN_RAD  (6.632251157578453)
 
-#define ONE_OVER_PI        0.318309886183791
-#define ONE_OVER_TWO_PI    0.159154943091895
+#define  FAST_MATH  1
 
 #define MIN_TO_MILLISECONDS 60000.0
-
-//  10.0 degs = 93701651
-//   5.0 degs = 46850825 5 deg -> rad[Q29]
-//   4.0 degs = 37480660
-//   3.0 degs = 28110495
-//   2.5 degs = 23425413   <-- AHRS440 Yaw limit
-//   2.0 degs   = 18740330
-//   1.0 degs   = 9370165   <-- AHRS440 Roll/Pitch limit
-//   0.5 degs   = 4685082
-//   0.375 degs = 3513553
-//   0.25  degs = 2342541
-//   0.1   degs =  937017
-// Roll/pitch/yaw limit values (converted to radians and expressed in Q29 format)
-//#define TWO_POINT_FIVE_DEGREE_Q29 23425413
-//#define TWO_DEGREES_Q29           18740330
-#define ONE_DEGREE_Q29             9370165
-//#define ONE_HALF_DEGREE_Q29        4685082
-//#define THREE_EIGTHS_DEGREE_Q29    3513553
-//#define ONE_QUARTER_DEGREE_Q29     2342541
 
 /// Specify the data acquisition task rate of the system in Hz. Due to the way data is collected,
 /// this is different than the sampling rate of the sensors.  Note: must be 100 or 200.
@@ -168,20 +155,9 @@ typedef enum{
 //   the result.
 #define FORCE_Q0_POSITIVE
 
-#ifdef INS_OFFLINE
-    #define MAX_NUM_OF_LINES  1500000
-    #define DISPLAY_DIAGNOSTIC_MSG
-#endif
-
-// Profiling during algorithm development - todo tm20160608 - remove when done
-//#define RUN_PROFILING
-#ifdef RUN_PROFILING
-#include <stdint.h>
-extern uint32_t gEkfElapsedTime;
-extern uint32_t gEkfMaxTime;
-extern float gEkfAvgTime;
-#endif
+// some value limits
+#define INT16_LIMIT 32765
+#define INT12_LIMIT 2045
 
 #endif /* GLOBALCONSTANTS_H */
-
 

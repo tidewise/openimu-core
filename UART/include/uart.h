@@ -29,25 +29,25 @@ limitations under the License.
 
 #ifndef __UART_H
 #define __UART_H
-#include "port_def.h"
 #include "GlobalConstants.h"
-#include "boardDefinition.h"
+//#include "boardDefinition.h"
 
-#define USER_COMM_UART kUserA_UART
-#define GPS_UART       kUserB_UART
 
 #ifdef __cplusplus
 extern "C" {
 #endif    
 
-extern void         uart_init(unsigned int uartChannel,uart_hw *port_hw);
-extern void         uart_read(unsigned int channel, port_struct *port);
-extern void         uart_write(unsigned int channel, port_struct *port);
-extern unsigned int bytes_remaining(unsigned int channel, port_struct *port);
+extern int          uart_init(int uartChannel, int baudrate);
+extern int          uart_read(int channel, uint8_t *data, int length);
+extern int          uart_write(int channel, uint8_t *data, int length);
+extern int          uart_rxBytesAvailable(int channel);
+extern void         uart_flushRecBuffer(int channel);
+extern int          uart_txBytesRemains(int channel);
+extern int          uart_removeRxBytes(int gUartChannel, int numToPop);
+extern int          uart_copyBytes(int channel, int index, int number, uint8_t *output);
+extern void         uart_registerRxSemaphore(int portType, void *id);
 extern void         uart_BIT(int uartType);
 extern void         uart_Pause();
-
-//extern void         uart_IrqOnOff(unsigned int uartChannel, uint16_t uartIrqType, FunctionalState en);
 
 #ifdef __cplusplus
 }

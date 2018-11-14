@@ -249,6 +249,7 @@ void SystemInit(void)
   /* Disable all interrupts */
   RCC->CIR = 0x00000000;
 
+
 #ifdef DATA_IN_ExtSRAM
   SystemInit_ExtMemCtl();
 #endif /* DATA_IN_ExtSRAM */
@@ -263,6 +264,8 @@ void SystemInit(void)
 #else
   SCB->VTOR = FLASH_BASE | VECT_TAB_OFFSET; /* Vector Table Relocation in Internal FLASH */
 #endif
+  /* Enable CCM memory clock */
+  RCC->AHB1ENR = 0x00100000;
 }
 
 /**

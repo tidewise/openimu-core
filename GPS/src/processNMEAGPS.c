@@ -33,9 +33,7 @@ limitations under the License.
 #include <stdint.h>
 
 #include "driverGPS.h"
-#include "filter.h"
 #include "BITStatus.h"
-#include "algorithmAPI.h"
 
 char _parseGPGGA(char *msgBody, GpsData_t* GPSData);
 char _parseVTG(char *msgBody, GpsData_t* GPSData);
@@ -43,7 +41,8 @@ char _parseRMC(char *msgBody, GpsData_t* GPSData);
 void _handleNMEAmsg(char *msgID, char *msgBody,GpsData_t* GPSData);
 void _NMEA2UbloxAndLLA(NmeaLatLonSTRUCT* NmeaData, GpsData_t* GPSData);
 void _smoothVerticalData(GpsData_t* GPSData);
-
+int crcError  = 0;
+int starError = 0;
 /** ****************************************************************************
  * @name: processNMEAMessage parse a complete NMEA message.
  * @author  Dong An
@@ -60,14 +59,22 @@ void processNMEAMessage(char          *msg,
                         unsigned int  *msgLength,
                         GpsData_t *GPSData)
 {
-    char         checksumRcvd;
-    char         checksumCalc;
+	volatile char  checksumRcvd;
+    volatile char  checksumCalc;
     unsigned int lengthBeforeStar;
+	uint8_t      tmp;
 
-	if (msg[*msgLength - 5]!= '*')
+	if (msg[*msgLength - 5]!= '*'){
+		starError++;
         return; /// no '*' delimiter before checksum
+
+	}
     // convert hex "digits" from ascii to int
-	checksumRcvd =( (msg[*msgLength - 4] - '0') << 4) | (msg[*msgLength - 3] - '0');
+	tmp = msg[*msgLength - 4];
+	checksumRcvd = tmp > '9'? tmp - '7' : tmp - '0';
+	checksumRcvd <<= 4;
+	tmp = msg[*msgLength - 3];
+	checksumRcvd |= tmp > '9'? tmp - '7' : tmp - '0';
 
 	lengthBeforeStar = *msgLength - 5;
 	checksumCalc     = computeNMEAChecksum(msg, &lengthBeforeStar);
@@ -75,8 +82,76 @@ void processNMEAMessage(char          *msg,
         _handleNMEAmsg(msg,     // header "$GP..."
                        &msg[7], // payload
                        GPSData);
+    }else{
+		crcError++;
+		checksumCalc  = computeNMEAChecksum(msg, &lengthBeforeStar);
     }
 }
+
+/** ****************************************************************************
+ * @name: parseNMEAMessage parse a complete NMEA message.
+ * @author  Dong An
+ * @param [in] inByte    - next byte from serial stream
+ * @param [in] gpsMsg    - GPS message buffer
+ * @param [in] GPSData   - data structure to parse into
+ * @retval N/A
+ * @details Extract message from serial byte stream and process
+ ******************************************************************************/
+int parseNMEAMessage(uint8_t inByte, uint8_t *gpsMsg, GpsData_t *GPSData)
+{
+    static int state = 0;
+    static unsigned int len = 0;
+    static uint8_t *ptr;
+	static uint32_t sync = 0;
+	unsigned static int  synced = 0;
+
+    sync   = (sync << 8) | inByte;
+    synced = 0;
+
+    if ((sync & 0x00ffffff) == NMEA_SYNC_1)
+    {
+        synced = 1;
+        gpsMsg[0] = '$';
+        gpsMsg[1] = 'G';
+        gpsMsg[2] = 'P';
+    } else if ((sync & 0x00ffffff) == NMEA_SYNC_2) {
+        synced = 1;
+        gpsMsg[0] = '$';
+        gpsMsg[1] = 'G';
+        gpsMsg[2] = 'N';
+    }
+
+    if (synced){
+        state = 1;
+        ptr   = &gpsMsg[3];
+        len   = 3;
+        return 0;
+    }
+
+    if(state == 0){
+        return 0;
+    }
+
+    *ptr++ = inByte;
+    len++;
+
+    if (len >= MAX_MSG_LENGTH){
+        // overflow - reset packet engine
+        state = 0;
+        return 1;
+    }
+
+    if (inByte == 0x0a)
+    { // LF - last character
+        // got full message - process it
+        processNMEAMessage((char *)gpsMsg, &len, GPSData);
+        state = 0;
+    }
+
+    return 0;
+} 
+
+
 
 /** ****************************************************************************
  * @name: _handleNMEAmsg decode specific GPS NMEA messages.
@@ -93,10 +168,14 @@ void _handleNMEAmsg(char          *msgID,
                     char          *msgBody,
                     GpsData_t     *GPSData)
 {
-    if( strncmp((char *)msgID, "$GPGGA", 6) == 0 ) {
+	char *ptr = (char *)&msgID[3];
+
+    if( strncmp(ptr, "GGA", 3) == 0 ) {
+		GPSData->totalGGA++;
 		_parseGPGGA(msgBody, GPSData);
     }
-    if( strncmp((char *)msgID, "$GPVTG", 6) == 0 ) {
+    if( strncmp(ptr, "VTG", 3) == 0 ) {
+		GPSData->totalVTG++;
 		_parseVTG(msgBody, GPSData);
     }
 }
@@ -281,13 +360,6 @@ char _parseGPGGA(char          *msgBody,
         gBitStatus.swStatus.bit.noGPSTrackReference = 1; // no GPS track
     }
 
-    /// NMEA - DGPS bit
-    if (GPSFix == 2 || GPSFix == 4 || GPSFix == 5){ /// on
-        SetAlgorithmUseDgps(0);
-	}
-    else{
-        SetAlgorithmUseDgps(1);
-	}
 
 	/// Altitude
 	if( extractNMEAfield(msgBody, field, 8, parseReset) )	{
@@ -408,8 +480,11 @@ char computeNMEAChecksum(char         *NMEAMsg,
 	unsigned int  i;
 	char msgChecksumComputed = 0;
 
-	for (i = 0; i < (*lengthBeforeStar - 1); i++) {
-		msgChecksumComputed ^= NMEAMsg[1 + i]; ///skip '$'
+	for (i = 1; i < (*lengthBeforeStar); i++) {
+//		if(NMEAMsg[i] == ','){
+//			continue;
+//		}
+		msgChecksumComputed ^= NMEAMsg[i]; ///skip '$'
 	}
 	return msgChecksumComputed;
 }
@@ -583,3 +658,5 @@ void convertItow(GpsData_t* GPSData)
     /// Navigation message. using UTC time directly by scaling to ms.
 	GPSData->itow = (unsigned long) (tmp * 1000);
 }
+
+

@@ -29,7 +29,7 @@ limitations under the License.
 #include <stdint.h>
 #include "GlobalConstants.h"
 
-void InitializeAlgorithmStruct(void);
+void InitializeAlgorithmStruct(uint16_t callingFreq);
 void InitializeSensorScaling(void);
 void setAlgorithmStateStabilizeSystem();
 uint16_t getAlgorithmCounter();

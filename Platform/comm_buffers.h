@@ -32,15 +32,15 @@ extern "C" {
 #endif    
 
 // cir_buf defined in port_def.h
-extern unsigned int COM_buf_bytes_available (cir_buf *buf_struc);
-extern unsigned int COM_buf_headroom (cir_buf *buf_struc);
-extern unsigned int COM_buf_delete (cir_buf *buf_struc, unsigned int pop_cnt);
-extern unsigned int COM_buf_delete_byte (cir_buf *circBuf );
-extern BOOL COM_buf_copy (cir_buf *buf_struc,unsigned int buf_index,unsigned int cnt,unsigned char *buf_out);
-extern BOOL COM_buf_copy_byte (cir_buf *circBuf, unsigned int  bufIndex, unsigned char *bufOut);
-extern BOOL COM_buf_add(cir_buf *buf_struc,unsigned char *buf,unsigned int cnt);
-extern BOOL COM_buf_get(cir_buf *buf_struc,unsigned char *buf,unsigned int cnt);
-extern void COM_buf_init(port_struct *port,unsigned char *tx_buf,unsigned char *rx_buf,unsigned int rx_size,unsigned int tx_size);
+extern unsigned int COM_buf_bytes_available (cir_buf_t *buf_struc);
+extern unsigned int COM_buf_headroom (cir_buf_t *buf_struc);
+extern unsigned int COM_buf_delete (cir_buf_t *buf_struc, unsigned int pop_cnt);
+extern unsigned int COM_buf_delete_byte (cir_buf_t *circBuf );
+extern BOOL COM_buf_copy (cir_buf_t *buf_struc,unsigned int buf_index,unsigned int cnt,unsigned char *buf_out);
+extern BOOL COM_buf_copy_byte (cir_buf_t *circBuf, unsigned int  bufIndex, unsigned char *bufOut);
+extern int  COM_buf_add(cir_buf_t *buf_struc, unsigned char *buf, unsigned int cnt);
+extern BOOL COM_buf_get(cir_buf_t *buf_struc, unsigned char *buf, unsigned int cnt);
+extern void COM_buf_init(port_struct *port, unsigned char *tx_buf,unsigned char *rx_buf,unsigned int rx_size,unsigned int tx_size);
 #ifdef __cplusplus
 }
 #endif    

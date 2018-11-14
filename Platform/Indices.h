@@ -80,15 +80,14 @@ enum eSensorOrder {
 #define Q2      2
 #define Q3      3
 
-#define LAT_IDX     0
-#define LON_IDX     1
-#define ALT_IDX     2
+#define LAT     0
+#define LON     1
+#define ALT     2
 
 enum NED_Index {
   GPS_NORTH = 0,
   GPS_EAST  = 1,
   GPS_DOWN  = 2
 };
-
 
 #endif /* INDICES_H */

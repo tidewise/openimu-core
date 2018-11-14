@@ -1103,7 +1103,7 @@ int32_t sin_q30( int32_t angleRad_q29 )
     int32_t angleSquared_q29 = _qmul( ang_q29, ang_q29, 29, 29, 29 );
 
     // Maclaurin series for sine
-    //   sin( x ) = x*( 1 - x^2*( 1/3! - x^2*( 1/5! - x^2*( 1/7! - x^2*( 1/9! - x^2*( 1/11! - … ) ) ) ) )
+    //   sin( x ) = x*( 1 - x^2*( 1/3! - x^2*( 1/5! - x^2*( 1/7! - x^2*( 1/9! - x^2*( 1/11! - ï¿½ ) ) ) ) )
     tmp1_q29 = coeff.a4_q29 - _qmul( angleSquared_q29, coeff.a5_q29, 29, 29, 29 );
     tmp2_q29 = coeff.a3_q29 - _qmul( angleSquared_q29, tmp1_q29, 29, 29, 29 );
     tmp3_q29 = coeff.a2_q29 - _qmul( angleSquared_q29, tmp2_q29, 29, 29, 29 );

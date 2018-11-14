@@ -24,7 +24,7 @@ limitations under the License.
 #include <stdint.h>
 #include "Indices.h"
 
-/* Global Sebsors Data structure  */
+/* Global Sensor Data structure  */
 typedef struct {
     uint32_t            rawSensors[N_RAW_SENS];
     double              scaledSensors[N_RAW_SENS]; /// g's, rad/s, G, deg C, (body frame)

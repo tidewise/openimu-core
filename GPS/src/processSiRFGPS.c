@@ -28,12 +28,9 @@ limitations under the License.
 
 #include <math.h>
 #define LOGGING_LEVEL LEVEL_DEBUG
-#include "debug.h"
 #include "driverGPS.h"
 #include "SiRFPacketFormats.h"
 #include "utilities.h"
-#include "filter.h"
-#include "algorithmAPI.h"
 #include <string.h>
 #include "BITStatus.h"
 #include "osapi.h"
@@ -157,30 +154,33 @@ void _sirfSwitchToBinary(uint32_t realBaudRate)
  * @param [out] goalBaudRate - data from GPS data buffer
  * @retval N/A
  ******************************************************************************/
-void configSiRFGPSReceiver(GpsData_t      * GPSData,
-                           int            goalBaudRate)
+void configSiRFGPSReceiver(GpsData_t * GPSData, int goalBaudRate)
 {
-//    uint32_t realBaudRate = baudEnumToBaudRate( goalBaudRate );
-    uint32_t realBaudRate = goalBaudRate;
+/* 
+    static int timeout = 5;     //
 
-    if (GPSData->GPSProtocol == NMEA_TEXT) {
-        _sirfSwitchToBinary( realBaudRate );
-    } else { // have BINARY but need to switch baudRate
-        if (goalBaudRate != GPSData->GPSbaudRate) {
-            sirfBinarySwitchBaud( realBaudRate ); // processSIRFGPS.cpp
-            _siRFStaticNavMsg(0); // 0 = disable static navigation
-        }
-    }
-    GPSData->GPSProtocol = SIRF_BINARY;
-    GPSData->GPSbaudRate = goalBaudRate;
-    while ( !isGpsTxEmpty() )
-    {/* spin */;} ///< wait for message to finish  DEBUG: Can get stuck here if SiRF not attached
+    if (!GPSData->sirfInitialized) {
+        _sirfSwitchToBinary(goalBaudRate);
+        GPSData->sirfInitialized = 1;
+        timeout = 0;
+        ///< wait for message to finish  DEBUG: Can get stuck here if SiRF not attached
+        while ( !isGpsTxEmpty() ) {};   // spin
     OS_Delay(100);
-    initGpsUart( realBaudRate );
+        initGpsUart(goalBaudRate);
     OS_Delay(100); ///< clear incoming remaining packets
     flushGPSRecBuf();
     pollSiRFVersionMsg(); // send request for version - if (binary) version recieved set msg rate
     GPSData->GPSFix = 1;
+    }else if (++timeout > 5) {  // 5 cycles of GPS task
+        GPSData->sirfInitialized = 0;
+        GPSData->GPSbaudRate     = 4800;
+        while ( !isGpsTxEmpty() ) {};   // spin
+        initGpsUart(GPSData->GPSbaudRate);  // initial GPS receiver baudrate
+        OS_Delay(100);      ///< clear incoming remaining packets
+        GPSData->GPSFix = 0;
+    }
+*/
+
 }
 
 
@@ -571,6 +571,7 @@ void processSiRFBinaryMessage(char          *msg,
             _configureSiRFBinaryMessages(); // set output data rate
 
         configSirf = TRUE;
+        GPSData->GPSConfigureOK = 1;
         break;
     case SIRF_SOFTWARE_COMMAND_ACK:  // 0x0b
     case SIRF_SOFTWARE_COMMAND_NACK: // 0x0c

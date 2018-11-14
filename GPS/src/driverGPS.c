@@ -24,104 +24,28 @@ limitations under the License.
 
 #include <stdint.h>
 
-#include "port_def.h"
 #include "driverGPS.h"
-#include "extern_port_config.h"
 #include "uart.h"
-#include "comm_buffers.h"
-#include "debug.h"
-#include "debug_usart.h"  // for UseExtUSARTGps()
 #include "gpsAPI.h"
+#include "math.h"
 #include "platformAPI.h"
 
-port_struct* gGpsUartPtr = 0;
-port_struct onePpsUart;
-unsigned int gUartChannel;
+int gpsSerialChan = UART_CHANNEL_NONE;  // undefined, needs to be explicitly defined 
 
 // extern_port.c
-extern void GetGpsExternPortAndChannel(unsigned int* uartChannel,
-                                       port_struct** gGpsUartPtr);
-
-/** ****************************************************************************
- * @name baudEnumToBaudRate LOCAL convert enumeration to value
- * @param [in] baudRate - enumeration to translate extern_port_config.h
- * @retval actual baud rate value
- ******************************************************************************/
-uint32_t baudEnumToBaudRate(int baudEnum)
-{   // -1 (invalid) can be sent in. Passed through to gGpsDataPtr->GPSConfigureOK
-    uint32_t baudRate = baudEnum;
-
-    switch (baudEnum) {
-        case BAUD_9600: // 0
-            baudRate =    9600;
-            break;
-        case BAUD_19200: // 1
-            baudRate =   19200;
-            break;
-        case BAUD_38400: // 2
-            baudRate =	 38400;
-            break;
-        case BAUD_4800:   // 4
-            baudRate =	 4800;
-            break;
-        case BAUD_115200: // 5
-            baudRate =	115200;
-            break;
-        case BAUD_230400: // 6
-            baudRate =  230400;
-            break;
-        case BAUD_460800: // 7
-            baudRate =	460800;
-            break;
-        case BAUD_57600: // 3
-        default:
-            baudRate =	 57600;
-            break;
-    }
-
-    return baudRate;
-}
+extern void GetGpsExternUartChannel(unsigned int* uartChannel);
 
 /** ****************************************************************************
  * @name: initGpsUart set up baudrate and GPS UART
- * @param [in] baud - enumeration to translate 0-7, neg autobaud, otherwise spi
+ * @param [in] gGpsDataPtr - GPS control structure
  * @retval N/A
  ******************************************************************************/
-void initGpsUart(int baud) {
-    if (baud > 0) {
-        GetGpsExternPortAndChannel(&gUartChannel, // channel 1
-                                   &gGpsUartPtr); // port 1
-        gGpsUartPtr->hw.baud = baud;
-        uart_init(gUartChannel, // low levl (pin level) init
-                  &(gGpsUartPtr->hw));
-    }
+int initGpsUart(int baudrate) 
+{
+    gpsSerialChan  = platformGetSerialChannel(GPS_SERIAL_PORT);
+    return uart_init(gpsSerialChan, baudrate);
 }
 
-// not used
-/** ****************************************************************************
- * @name: initOnePpsUart set up baudrate for INTERNAL GPS UART
- * @param [in]
- * @retval N/A
- ******************************************************************************/
-void initOnePpsUart( void ) {
-    port_struct* onePpsUartPtr = &onePpsUart;
-
-    GetGpsExternPortAndChannel(&gUartChannel,   // channel 1
-                               &onePpsUartPtr); // port 1
-    onePpsUart.hw.baud = 4800;
-    uart_init(gUartChannel, // low levl (pin level) init
-              &(onePpsUartPtr->hw));
-}
-
-/** ****************************************************************************
- * @name: setExternalPortPtr external GPS USART so pass in port pointer to the
- *        cicular buffer
- * @param [in] gGpsPortPtr - debug USART port struct pointer (circular buffer)
- * @retval N/A
- ******************************************************************************/
-void setExternalPortPtr(port_struct* gGpsPortPtr) {
-        gGpsUartPtr = gGpsPortPtr;
-}
 
 /** ****************************************************************************
  * @name: gpsBytesAvailable bytes in Gps circ buffer API only used in
@@ -131,10 +55,7 @@ void setExternalPortPtr(port_struct* gGpsPortPtr) {
  ******************************************************************************/
 int gpsBytesAvailable()
 {
-    if ( gGpsUartPtr ) {
-        return (COM_buf_bytes_available(&(gGpsUartPtr->rec_buf)));
-    }
-   return 0;
+    return uart_rxBytesAvailable(gpsSerialChan);
 }
 
 /** ****************************************************************************
@@ -144,11 +65,7 @@ int gpsBytesAvailable()
  ******************************************************************************/
 void flushGPSRecBuf(void)
 {
-	uint16_t numToRemove;
-
-    numToRemove = COM_buf_bytes_available(&(gGpsUartPtr->rec_buf));
-    COM_buf_delete(&(gGpsUartPtr->rec_buf),
-                   numToRemove);
+    uart_flushRecBuffer(gpsSerialChan);
 }
 
 /** ****************************************************************************
@@ -158,7 +75,7 @@ void flushGPSRecBuf(void)
  ******************************************************************************/
 BOOL isGpsTxEmpty(void)
 {
-    return (0 == bytes_remaining(gUartChannel, gGpsUartPtr)); // uart.c
+    return uart_txBytesRemains(gpsSerialChan) == 0;
 }
 
 /** ****************************************************************************
@@ -170,12 +87,13 @@ uint16_t delBytesGpsBuf(uint16_t numToPop)
 {
 	int16_t numInBuffer;
 
-    numInBuffer = COM_buf_bytes_available(&(gGpsUartPtr->rec_buf));
+    numInBuffer = uart_rxBytesAvailable(gpsSerialChan);
     if (numInBuffer < numToPop) {
         numToPop = numInBuffer;
     }
-    COM_buf_delete(&(gGpsUartPtr->rec_buf),
-                   numToPop);
+    uart_removeRxBytes(gpsSerialChan, numToPop);
+//    COM_buf_delete(&(gGpsUartPtr->rec_buf),
+//                   numToPop);
     return ( numInBuffer - numToPop ); ///< unscanned bytes
 }
 
@@ -185,6 +103,7 @@ uint16_t delBytesGpsBuf(uint16_t numToPop)
  * @param [in] index represents the byte offset into the FIFO to start looking at.
  * @retval  the 16-bit word in the FIFO starting at index offset from end.
  ******************************************************************************/
+/*
 uint16_t peekWordGpsBuf(uint16_t index)
 {
 	uint16_t word;
@@ -192,7 +111,7 @@ uint16_t peekWordGpsBuf(uint16_t index)
     word = peekByteGpsBuf(index) << 8 | peekByteGpsBuf(index + 1);
 	return word;
 }
-
+*/
 /** ****************************************************************************
  * @name peekByteGpsBuf peekByteSCIA will return a byte without popping
  *       the FIFO.
@@ -204,10 +123,8 @@ uint8_t peekByteGpsBuf(uint16_t index)
 {
     uint8_t output = 0;
 
-    COM_buf_copy (&(gGpsUartPtr->rec_buf),
-                  index,
-                  1,
-                  &output);
+    uart_copyBytes(gpsSerialChan, index, 1, &output);
+
 	return output;
 }
 
@@ -229,14 +146,13 @@ unsigned long peekGPSmsgHeader(uint16_t      index,
 	unsigned long GPSHeader;
 
     headerLength = GPSData->GPSMsgSignature.GPSheaderLength;
-    COM_buf_copy (&(gGpsUartPtr->rec_buf),
-                  index,
-                  headerLength,
-                  (uint8_t *)&header);
+    uart_copyBytes(gpsSerialChan, index, headerLength, header);
     GPSHeader = 0;
+
     for (i = 0, j = headerLength - 1; i < headerLength; i++, j--) {
         GPSHeader |= header[i] << (j * 8);
     }
+
 	return GPSHeader;
 }
 
@@ -250,18 +166,10 @@ unsigned long peekGPSmsgHeader(uint16_t      index,
  * @retval The number of bytes left in the buffer. Or Zero - finished or
  *         buffer had exactly the number of bytes in the complete messsage
  ******************************************************************************/
-int16_t retrieveGpsMsg(uint16_t      numBytes,
-					   GpsData_t *GPSData,
-					   uint8_t       *outBuffer)
+int16_t retrieveGpsMsg(uint16_t  numBytes, GpsData_t *GPSData, uint8_t  *outBuffer)
 {
-	BOOL status = 0;
-	status = COM_buf_get(&(gGpsUartPtr->rec_buf),
-                         outBuffer,
-                         numBytes);
-	if (status == 0)
-		return 0; // bad [0]
-	else // return number of bytes left
-		return gGpsUartPtr->rec_buf.bytes_in_buffer;
+	uart_read(gpsSerialChan, outBuffer, numBytes);
+    return uart_rxBytesAvailable(gpsSerialChan);
 }
 
 /** ****************************************************************************
@@ -279,17 +187,14 @@ int16_t findHeader(uint16_t      numInBuff,
     uint8_t  buf[MAX_HEADER_LEN];
 	uint8_t  byte;
 	uint32_t header = 0;
-	uint8_t  exit   = 0;
+	volatile uint8_t  exit   = 0;
+    int      num;
 
 	do {
-		COM_buf_copy_byte (&(gGpsUartPtr->rec_buf),
-					       0, // index
-					       &byte);
+		uart_copyBytes(gpsSerialChan,0,1,&byte);
+
 		if (byte == GPSData->GPSMsgSignature.startByte) {
-			COM_buf_copy (&(gGpsUartPtr->rec_buf),
-                  1, // index
-                  GPSData->GPSMsgSignature.GPSheaderLength - 1,
-                  (uint8_t *)&buf);
+		    uart_copyBytes(gpsSerialChan,1,GPSData->GPSMsgSignature.GPSheaderLength - 1, buf);
 			header = byte <<  (GPSData->GPSMsgSignature.GPSheaderLength - 1) * 8;
 			switch (GPSData->GPSMsgSignature.GPSheaderLength) {
 				case 2: // SiRF 0xa0a2
@@ -302,12 +207,16 @@ int16_t findHeader(uint16_t      numInBuff,
             if ( header == GPSData->GPSMsgSignature.GPSheader ) {
 				exit = 1;
 			} else {
-				COM_buf_delete_byte(&(gGpsUartPtr->rec_buf));
+				num = uart_removeRxBytes(gpsSerialChan, 1);
+				if(num){
 				numInBuff--;
 			}
+			}
 		} else {
-			COM_buf_delete_byte(&(gGpsUartPtr->rec_buf));
+			num = uart_removeRxBytes(gpsSerialChan, 1);
+			if(num){
 			numInBuff--;
+		}
 		}
     } while ( (exit == 0) && (numInBuff > 0) );
 	return numInBuff;
@@ -321,42 +230,33 @@ int16_t findHeader(uint16_t      numInBuff,
  * @details gConfiguration.userBehavior.bit.useGPS (use USART) determines
  *          which pipeline to send command through
  ******************************************************************************/
-int writeGps(char     *data,
-             uint16_t len)
+int writeGps(char  *data, uint16_t len)
 {
-    uint16_t i = 0;
-    if (platformUseGPS()) { // using external USART for GPS
-        do {
-            DebugSerialPutChar(data[i]);
-            i++;
-        } while (i < len);
+    return uart_write(gpsSerialChan, (uint8_t*)data, len);
 
-    } else { // internal Gps UART
-        uart_write(gUartChannel,
-                   gGpsUartPtr);
-        COM_buf_add(&(gGpsUartPtr->xmit_buf),
-                   (unsigned char*) data,
-                   len);
-    }
-    return 0;
 }
 
 void GetGPSData(gpsDataStruct_t *data)
 {
     data->gpsValid          = gGpsDataPtr->gpsValid;
-    data->updated           = gGpsDataPtr->updateFlagForEachCall;
-    data->latSign           = gGpsDataPtr->latSign;
-    data->lonSign           = gGpsDataPtr->lonSign;
-    data->latitude          = gGpsDataPtr->lat;
-    data->longitude         = gGpsDataPtr->lon;
+    data->updateFlag        =  ( gGpsDataPtr->updateFlagForEachCall >> GOT_VTG_MSG ) & 0x00000001 &&
+                               ( gGpsDataPtr->updateFlagForEachCall >> GOT_GGA_MSG ) & 0x00000001;
+    gGpsDataPtr->updateFlagForEachCall &= 0xFFFFFFFD;
+
+    data->latitude          = (double)gGpsDataPtr->latSign * gGpsDataPtr->lat;
+    data->longitude         = (double)gGpsDataPtr->lonSign * gGpsDataPtr->lon;
+    data->altitude          = gGpsDataPtr->alt;
+
     data->vNed[0]           = gGpsDataPtr->vNed[0];
     data->vNed[1]           = gGpsDataPtr->vNed[1];
     data->vNed[2]           = gGpsDataPtr->vNed[2];
+
     data->trueCourse        = gGpsDataPtr->trueCourse;
     data->rawGroundSpeed    = gGpsDataPtr->rawGroundSpeed;
-    data->altitude          = gGpsDataPtr->alt;
+
     data->GPSSecondFraction = gGpsDataPtr->GPSSecondFraction; 
     data->altEllipsoid      = gGpsDataPtr->altEllipsoid;
+
     data->itow              = gGpsDataPtr->itow;       
     data->GPSmonth          = gGpsDataPtr->GPSmonth;
     data->GPSday            = gGpsDataPtr->GPSday;
@@ -364,4 +264,82 @@ void GetGPSData(gpsDataStruct_t *data)
     data->GPSHour           = gGpsDataPtr->GPSHour;
     data->GPSMinute         = gGpsDataPtr->GPSMinute; 
     data->GPSSecond         = gGpsDataPtr->GPSSecond; 
+
+    data->HDOP              = gGpsDataPtr->HDOP;
+    data->GPSHorizAcc       = gGpsDataPtr->GPSHorizAcc;
+    data->GPSVertAcc        = gGpsDataPtr->GPSVertAcc;
+}
+
+
+/** ****************************************************************************
+ * @name: avgDeltaSmoother API routine using data structure to hold instance data
+ *        for smoothing gps using a 3 item moving average of the change in values
+  *       (deltas) that removes data "spikes" over 6 times the average
+ * @author
+ * @param [in]  in - new value to add to the average
+ * @param [in]  data - filter data for lat, lon or alt
+ * @retval last value if > than 6x avg or pass the value back out
+ ******************************************************************************/
+double avgDeltaSmoother( double  rawData,    gpsDeltaStruct *delta)
+{
+    double thisDelta;
+    double returnVal;
+
+    thisDelta = delta->last - rawData;
+
+    delta->sum -= delta->oldValues[2]; // pop the old value off of the sum
+    delta->sum += thisDelta;           // push the new value in the sum
+
+    // push the data down the hold stack
+    delta->oldValues[2] = delta->oldValues[1];
+	delta->oldValues[1] = delta->oldValues[0];
+	delta->oldValues[0] = thisDelta;
+    if ( fabs(thisDelta) > 6.0 * fabs( delta->sum / 3.0 ) ) {
+        returnVal = delta->last; // filter (omit) the value
+    } else
+        returnVal = rawData; // send the input value back out
+
+    delta->last = rawData;             // hold input value for next entry
+    return returnVal;
+}
+
+/******************************************************************************
+ * @name: thresholdSmoother API threshold filter that uses total speed from Vned
+ *        for smoothing gps "glitches" (in delta speed) "spikes" over 15m/s
+ * @author
+ * @param [in]  in - new value to compare to threshold
+ * @param [in]  data - return last good data or current good data
+ * @retval N/A
+ ******************************************************************************/
+void thresholdSmoother( double         vNedIn[3],
+                        float          vNedOut[3])
+{
+    double        speedSqCurr;
+    double        SPEED_SQ_LIMIT = 225;  // limit the change to 15 m/s
+    static double speedSqPast;
+    static double vNedPast[3];
+
+    // "glitch" filter
+    // Compute the speed
+    speedSqCurr = vNedIn[0]*vNedIn[0] + vNedIn[1]*vNedIn[1] + vNedIn[2]*vNedIn[2];
+
+    // "Filter" the velocity signal if the delta is greater than 15 [ m/s ]
+    //   (This is an 8% margin over expected system dynamics)
+    if( fabs( speedSqCurr - speedSqPast ) > SPEED_SQ_LIMIT ) {
+        // If a glitch is encountered, set output to last "good" value.
+        //  Do not update past with current.
+        vNedOut[0] = (float)vNedPast[0];
+        vNedOut[1] = (float)vNedPast[1];
+        vNedOut[2] = (float)vNedPast[2];
+    } else {
+        // Do not change GPS velocity, update past values with current values
+        speedSqPast = speedSqCurr;
+        vNedPast[0] = vNedIn[0];
+        vNedPast[1] = vNedIn[1];
+        vNedPast[2] = vNedIn[2];
+
+        vNedOut[0] = (float)vNedIn[0];
+        vNedOut[1] = (float)vNedIn[1];
+        vNedOut[2] = (float)vNedIn[2];
+    }
 }

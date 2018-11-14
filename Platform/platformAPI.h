@@ -1,5 +1,5 @@
 /** ******************************************************************************
- * @file xbowAPI.h API functions for Interfacing with xbow library funcctions
+ * @file platformAPI.h API functions for Interfacing with xbow library funcctions
  *
  * THIS CODE AND INFORMATION ARE PROVIDED "AS IS" WITHOUT WARRANTY OF ANY
  * KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
@@ -53,8 +53,8 @@ int  platformGetSysRange();
 BOOL platformUseGPS(void);
 BOOL platformIsGpsPPSUsed(void);
 void platformEnableGpsPps(BOOL enable);
-int  getUnitCommunicationType(void);
-void setUnitCommunicationType(int type);
+int  platformGetUnitCommunicationType(void);
+void platformSetUnitCommunicationType(int type);
 void setGpsBaudRate(int16_t rate); 
 void setGpsProtocol(int16_t p);   
 void platformEnableMag(BOOL enable);
@@ -75,6 +75,11 @@ BOOL platformCanTermResistorEnabled();
 void markEEPROMUnlocked();
 void markEEPROMLocked();
 void platformInitConfigureUnit(void);
+void platformUnassignSerialChannels();
+BOOL platformAssignPortTypeToSerialChannel(int portType, int channel);
+int  platformGetSerialChannel(int portType);
+void platformRegisterRxSerialSemaphoreID(int portType, void *semId);
+
 
 
 /** ***************************************************************************
@@ -90,5 +95,25 @@ void performSelfTest();
 // sets sensor error state for aalgorithm
 extern void    SetSensorError(int sensor);
 #define   kick_dog()
+
+#define NUM_UART_PORTS   3
+
+#define USER_SERIAL_PORT   0
+#define GPS_SERIAL_PORT    1
+#define DEBUG_SERIAL_PORT  2
+
+#define UART_CHANNEL_0     0  // pins 3 and 4 on the 20-pin connector. NOTE: not available in SPI interface mode
+#define UART_CHANNEL_1     1  // pins 5 and 6 on the 20-pin connector. NOTE: not available in SPI interface mode 
+#define UART_CHANNEL_2     2  // pins 17 and 19 on the 20-pin connector. Always available
+
+
+#define UART_CHANNEL_NONE -1  // undefined channel
+
+uint32_t        platformGetDacqTime();
+void            platformSetDacqTime(uint32_t time);
+
+extern int userSerialChan;
+extern int gpsSerialChan;
+extern int debugSerialChan;
 
 #endif

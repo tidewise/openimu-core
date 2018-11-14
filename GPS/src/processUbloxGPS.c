@@ -1153,11 +1153,12 @@ unsigned char configurateUBloxGPSIOMsgRate (GpsData_t* GPSData)
  ******************************************************************************/
 unsigned char  getConnectedWithUnknownStatusUbloxGPS(GpsData_t* GPSData)
 {
+	unsigned char        knownVersion    = 0;
+/*
 	static unsigned char firstFlag       = 0;
 	ubloxIDTypeSTRUCT    msgID;
 	static unsigned long lastSentoutTime = 0;
 	long                 deltaFromLastSendout;
-	unsigned char        knownVersion    = 0;
 	static unsigned char sendCFGFlag     = 0;
 	static unsigned char sendPRTFlag     = 0;
 	static unsigned int  squenceProcess  = AUTO_BAUD_PROCESS;
@@ -1234,6 +1235,7 @@ unsigned char  getConnectedWithUnknownStatusUbloxGPS(GpsData_t* GPSData)
 			} /// end of non-first
             break;
 	}
+*/
 	return knownVersion;
 }
 
@@ -1280,10 +1282,11 @@ unsigned char _sendAcknowlegdeProcess(ubloxIDTypeSTRUCT *cfgID,
                                       void (*pt2MyFunc)(ubloxIDTypeSTRUCT *cfgID,
                                                         GpsData_t     *GPSData))
 {
+	unsigned char        sendAcknowlegde = 0;
+/*
 	static unsigned long lastSentoutTime = 0;
 	unsigned char        firstFlag       = *firstCall;
 	long                 deltaFromLastSendout;
-	unsigned char        sendAcknowlegde = 0;
 
 	if(firstFlag == 0) {
 		GPSData->ubloxClassID = cfgID->classID;/// register the ID
@@ -1313,6 +1316,7 @@ unsigned char _sendAcknowlegdeProcess(ubloxIDTypeSTRUCT *cfgID,
 			}
 		}/// end of "not received ACK"
 	}/// end if "after first time" send
+*/    
 	return sendAcknowlegde;
 }
 

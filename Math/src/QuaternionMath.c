@@ -12,6 +12,8 @@
 
 #include "Indices.h"
 #include <math.h>
+#include "arm_math.h"
+#include "FastInvTrigFuncs.h"
 
 BOOL EulerAnglesToQuaternion( real* EulerAngles, real* Quaternion )
 {
@@ -26,12 +28,21 @@ BOOL EulerAnglesToQuaternion( real* EulerAngles, real* Quaternion )
     real ThetaZOver2 = (real)0.5 * EulerAngles[YAW];
 
     // Precompute sin/cos values used in the expressions below
+#ifndef FAST_MATH
     sinThetaXOver2 = sin( ThetaXOver2 );
     cosThetaXOver2 = cos( ThetaXOver2 );
     sinThetaYOver2 = sin( ThetaYOver2 );
     cosThetaYOver2 = cos( ThetaYOver2 );
     sinThetaZOver2 = sin( ThetaZOver2 );
     cosThetaZOver2 = cos( ThetaZOver2 );
+#else
+    sinThetaXOver2 = arm_sin_f32( ThetaXOver2 );
+    cosThetaXOver2 = arm_cos_f32( ThetaXOver2 );
+    sinThetaYOver2 = arm_sin_f32( ThetaYOver2 );
+    cosThetaYOver2 = arm_cos_f32( ThetaYOver2 );
+    sinThetaZOver2 = arm_sin_f32( ThetaZOver2 );
+    cosThetaZOver2 = arm_cos_f32( ThetaZOver2 );
+#endif
 
     // q0 = SIN( ThetaX/2 ) * SIN( ThetaY/2 ) * SIN( ThetaZ/2 ) + COS( ThetaX/2 ) * COS( ThetaY/2 ) * COS( ThetaZ/2 )
     Quaternion[Q0] = sinThetaXOver2 * sinThetaYOver2 * sinThetaZOver2 +
@@ -56,13 +67,26 @@ BOOL EulerAnglesToQuaternion( real* EulerAngles, real* Quaternion )
 
 BOOL EulerAnglesToR321(real* EulerAngles, real* R321)
 {
+    real sinThetaX, cosThetaX;
+    real sinThetaY, cosThetaY;
+    real sinThetaZ, cosThetaZ;
+
     // Precompute sin/cos values used in the expressions below
-    real sinThetaX = sin(EulerAngles[ROLL]);
-    real cosThetaX = cos(EulerAngles[ROLL]);
-    real sinThetaY = sin(EulerAngles[PITCH]);
-    real cosThetaY = cos(EulerAngles[PITCH]);
-    real sinThetaZ = sin(EulerAngles[YAW]);
-    real cosThetaZ = cos(EulerAngles[YAW]);
+#ifndef FAST_MATH
+    sinThetaX = sin(EulerAngles[ROLL]);
+    cosThetaX = cos(EulerAngles[ROLL]);
+    sinThetaY = sin(EulerAngles[PITCH]);
+    cosThetaY = cos(EulerAngles[PITCH]);
+    sinThetaZ = sin(EulerAngles[YAW]);
+    cosThetaZ = cos(EulerAngles[YAW]);
+#else
+    sinThetaX = arm_sin_f32(EulerAngles[ROLL]);
+    cosThetaX = arm_cos_f32(EulerAngles[ROLL]);
+    sinThetaY = arm_sin_f32(EulerAngles[PITCH]);
+    cosThetaY = arm_cos_f32(EulerAngles[PITCH]);
+    sinThetaZ = arm_sin_f32(EulerAngles[YAW]);
+    cosThetaZ = arm_cos_f32(EulerAngles[YAW]);
+#endif
 
     *(R321 + 3*X_AXIS+X_AXIS) = cosThetaZ*cosThetaY;
     *(R321 + 3*X_AXIS+Y_AXIS) = cosThetaZ*sinThetaY*sinThetaX - sinThetaZ*cosThetaX;
@@ -97,7 +121,7 @@ BOOL QuatNormalize( real *Quat )
               QuatSquared[Q1] +
               QuatSquared[Q2] +
               QuatSquared[Q3];
-    QuatMag = sqrt( QuatMag );
+    QuatMag = sqrtf( QuatMag );
 
     // Normalize the quaternion
     temp = 1 / QuatMag;
@@ -164,9 +188,15 @@ BOOL QuaternionToEulerAngles( real* EulerAngles,
     R[2][2] = q0Sq - q1Sq - q2Sq + q3Sq;
 
     // Calculate the euler angles from the DCM
+#ifndef FAST_MATH
     EulerAngles[ROLL]  = atan2( R[2][1], R[2][2] );
     EulerAngles[PITCH] = -asin( R[2][0] );
     EulerAngles[YAW]   = atan2( R[1][0], R[0][0] );
+#else
+    EulerAngles[ROLL]  = fatan2_rad( R[2][1], R[2][2] );
+    EulerAngles[PITCH] = -fasin_rad( R[2][0] );
+    EulerAngles[YAW]   = fatan2_rad( R[1][0], R[0][0] );
+#endif
 
     // What do do in the case that pitch = 90 degrees???  Indeterminate roll and yaw...
     return 1;

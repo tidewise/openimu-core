@@ -27,6 +27,7 @@ limitations under the License.
 #define _MAG_API_H
 
 #include <stdint.h>
+#include "UserMessaging.h"
 
 /** ***************************************************************************
  * @name InitMagAlignParams
@@ -59,7 +60,7 @@ uint8_t MagAlign( void );
  * @param N/A
  * @retval N/A
  ******************************************************************************/
-void TaskWorldMagneticModel(void);
+void TaskWorldMagneticModel(void const *argument);
 
 
 /*****************************************************************************
@@ -78,5 +79,36 @@ void SetMagAlignState(int state);
  ******************************************************************************/
 int GetMagAlignState(void);
 
+#pragma pack(1)
+// example of user payload structure
+typedef struct {
+    uint8_t   parameter[8];
+} magAlignCmdPayload;
+#pragma pack()
+
+typedef struct{
+    real  hardIron_X;
+    real  hardIron_Y;
+    real  softIron_Ratio;
+    real  softIron_Angle;
+}magAlignUserParams_t;
+
+/*****
+ * 
+ * 
+ ****/
+uint8_t ProcessMagAlignCmds(magAlignCmdPayload*  pld, uint8_t *payloadLen);
+
+/*****
+ * 
+ * 
+ ****/
+void getUserMagAlignParams(magAlignUserParams_t *params);
+
+/*****
+ * 
+ * 
+ ****/
+void setUserMagAlignParams(magAlignUserParams_t *params);
 
 #endif

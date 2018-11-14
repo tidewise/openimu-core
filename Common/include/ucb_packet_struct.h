@@ -29,12 +29,11 @@ limitations under the License.
 #ifndef UCB_PACKET_STRUCT_H
 #define UCB_PACKET_STRUCT_H
 #include <stdint.h>
-#include "crc.h"
 
 #define UCB_SYNC_LENGTH				2
 #define UCB_PACKET_TYPE_LENGTH		2
 #define UCB_PAYLOAD_LENGTH_LENGTH	1
-#define UCB_CRC_LENGTH				CRC_CCITT_LENGTH
+#define UCB_CRC_LENGTH				2
 
 #define UCB_SYNC_INDEX				0
 #define UCB_PACKET_TYPE_INDEX		(UCB_SYNC_INDEX + UCB_SYNC_LENGTH)
@@ -45,7 +44,7 @@ static const uint8_t UCB_SYNC [UCB_SYNC_LENGTH] = { 0x55, 0x55 };
 
 /// packet field type definitions
 typedef uint16_t       UcbPacketCodeType;
-typedef CrcCcittType   UcbPacketCrcType;
+typedef uint16_t       UcbPacketCrcType;
 
 
 #define UCB_MAX_PAYLOAD_LENGTH		255
@@ -67,15 +66,22 @@ typedef struct {
 
 
 typedef struct {
-     uint8_t       systemType;
-     uint8_t       spiAddress;
-     uint8_t	   payloadLength;
-     uint8_t       packetType;
-     uint8_t       payload[ UCB_MAX_PAYLOAD_LENGTH ];
+     uint8_t       packetType;      // 0
+     uint8_t       systemType;      // 1
+     uint8_t       spiAddress;      // 2
+     uint8_t       sync_MSB;        // 3
+     uint8_t       sync_LSB;        // 4
+     uint8_t       code_MSB;        // 5
+     uint8_t       code_LSB;        // 6
+     uint8_t	   payloadLength;   // 7
+     uint8_t       payload[UCB_MAX_PAYLOAD_LENGTH + 3]; // aligned to 4 bytes 
 } UcbPacketStruct;
 
 #define NUM_ARRAY_ITEMS(a)	(sizeof(a) / sizeof(a[0]))
 #define CODE(first, second)	(((first << 8) | second) & 0xffff)
 #define SWAP(x)	            (((x >> 8) & 0xff) | ((x << 8) & 0xff00))
+
+extern int getUserPayloadLength(void);
+
 
 #endif

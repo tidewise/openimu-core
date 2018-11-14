@@ -227,33 +227,6 @@ void InitPin_GPIO( uint32_t     PeriphClock,
     GPIO_Init( GPIO_Port, &GPIO_InitStructure);
 }
 
-static int _communicationType = UART_COMM;
-
-/******************************************************************************
- * @name getUnitCommunicationType. Retrieves communication interface type
- * @retval N/A
- * @param [out]  - communitation interface type
- ******************************************************************************/
-int getUnitCommunicationType(void)
-{  
-    return _communicationType;
-}
-
-/******************************************************************************
- * @name setUnitCommunicationType. 
- * @retval [in] - communitation interface type
- * @param [out] - N/A
- ******************************************************************************/
-void setUnitCommunicationType(int type)
-{  
-    if(type != SPI_COMM && type != UART_COMM){
-        return;
-    }
-    _communicationType = type;
-}
-
-
-
 
 
 BOOL ConfigureSpiClkPin(void)

@@ -79,6 +79,8 @@ void  GetBoardTempData(double *temp);
 
 
 void AccelerometerDataReadyIRQ(void);
-void MagnetomterDataReadyIRQ();
+void MagnetomterDataReadyIRQ(void);
+void BeginRateSensorRead(void);
+
 
 #endif

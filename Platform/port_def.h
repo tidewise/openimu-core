@@ -35,13 +35,13 @@ typedef struct {
     volatile unsigned int buf_inptr;  ///< buffer input pointer - modified in UART ISR
 	volatile unsigned int buf_outptr; ///< buffer output pointer - modified in UART ISR
     volatile unsigned int bytes_in_buffer; ///< ammount of buffer used
-} cir_buf;
+} cir_buf_t;
 
 typedef struct{
     unsigned int  baud;  	  ///< com port baud rate index
     unsigned char tx_int_lvl; ///< com port tx FIFO interrupt level
     unsigned char rx_int_lvl; ///< com port rx FIFO interrupt level
-    unsigned char tx_int_flg; ///< 0 = transmit int off,1 = transmit int enabled
+//    unsigned char tx_int_flg; ///< 0 = transmit int off,1 = transmit int enabled
 } uart_hw;
 
 typedef struct{
@@ -52,8 +52,8 @@ typedef struct{
 typedef struct{
     uart_hw	hw;        	///< UART hardware dependent variables
     chan 	cdef;       ///< COM channel dependent variables
-    cir_buf	rec_buf;	///< Receive buffer array of pointers
-    cir_buf	xmit_buf;   ///< Transmit buffer array of pointers
+    cir_buf_t	rec_buf;	///< Receive buffer array of pointers
+    cir_buf_t	xmit_buf;   ///< Transmit buffer array of pointers
 } port_struct;
 
 #endif

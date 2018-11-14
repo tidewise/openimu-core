@@ -24,19 +24,12 @@ limitations under the License.
 
 #include <stdint.h>
 
-//#define pi   3.1415926535897f
-//#define M_PI pi
-
 // internal constants
-//#define TRUE        ((uint16_t)1)
-//#define FALSE       ((uint16_t)0)
 #define WMM_MAX_MODEL_DEGREES	12
 #define WMM_MAX_SECULAR_VARIATION_MODEL_DEGREES	12
 #define	NUMTERMS     91 // ((WMM_MAX_MODEL_DEGREES+1)*(WMM_MAX_MODEL_DEGREES+2)/2);
 #define NUMPCUP      92  // NUMTERMS +1
 #define NUMPCUPS     13 // WMM_MAX_MODEL_DEGREES +1
-//	#define RAD2DEG(rad) ((rad)*(180.0L/M_PI))
-//	#define DEG2RAD(deg) ((deg)*(M_PI/180.0L))
 
 // internal structure definitions
 typedef struct {

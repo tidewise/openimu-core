@@ -10,6 +10,9 @@
 extern void OSDisableHook();
 extern void OSEnableHook();
 extern void OS_Delay(uint32_t msec);
+extern void OSDisableHookIfNotInIsr();
+extern void OSEnableHookIfNotInIsr();
+
 
 #define  getSystemTime()          osKernelSysTick()
 #define  getSystemTimeAsDouble() (double)osKernelSysTick()/configTICK_RATE_HZ;

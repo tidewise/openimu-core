@@ -34,12 +34,16 @@ limitations under the License.
 #define SIRF_SOFTWARE_COMMAND_NACK    0x0C // ID 13
 #define SIRF_GEODETIC_NAVIGATION_DATA 0x29 // ID 41
 #define SIRF_TRACKER_MESSAGES         0x41 // ID 65 'A' also ERROR
+#define SIRF_SBAS_PARAMETERS          0x32
 #define SIRF_EPHEMERIS                0x38 // ID 56
 #define SIRF_STATISICS                0xE1 // ID 225
 #define SIRF_STATIC_NAVIGATION        0x8f // ID 143
 
 #define SIRF_POLL_SOFTWARE_VERSION  0x84 // ID 132
+#define SIRF_SET_DGPS_SOURCE        0x85 // ID 133
+#define SIRF_SET_DGPS_CTRL          0x8A // ID 138
 #define SIRF_SET_MESSAGE_RATE       0xA6 // ID 166
+#define SIRF_SET_SBAS_PARAMETERS    0xAA // ID 170
 #define SIRF_SET_SERIAL_PORT        0x86 // ID 134
 
 #define SIRF_SET_NAV_MODE           0x88 // ID 136
@@ -103,6 +107,30 @@ typedef struct {
     uint8_t   deadRecogTimeout;
     uint8_t   measAndTrackSmoothing;
 } tSiRFSetModeControl;
+
+
+typedef struct {
+    uint8_t  id;
+    uint8_t  sbasPRN;
+    uint8_t  sbasMode;
+    uint8_t  sbasBits;
+    uint16_t reserved;
+} tSiRFSetSbasParams;
+
+
+typedef struct {
+    uint8_t   id;
+    uint8_t   dgpsSource;
+    uint32_t  reserved;
+    uint8_t   reserved2;
+} tSiRFSetDgpsSource;
+
+
+typedef struct {
+    uint8_t   id;
+    uint8_t   dgpsSelection;
+    uint8_t   timeout;
+} tSiRFSetDgpsControl;
 
 
 typedef struct {

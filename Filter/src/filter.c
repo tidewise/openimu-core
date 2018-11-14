@@ -29,7 +29,6 @@ limitations under the License.
 #include <stdlib.h> // malloc
 #include <math.h>   // fabs()
 #include "sensors_data.h"
-#include "algorithm.h"   // For XACCEL, etc
 #include "filter.h"
 
 // Butterworth (IIR) low-pass filter coefficients Q27
@@ -550,78 +549,3 @@ float smoothing_filter(float *in)
 
 	return out;
 }
-
-/** ****************************************************************************
- * @name: avgDeltaSmoother API routine using data structure to hold instance data
- *        for smoothing gps using a 3 item moving average of the change in values
-  *       (deltas) that removes data "spikes" over 6 times the average
- * @author
- * @param [in]  in - new value to add to the average
- * @param [in]  data - filter data for lat, lon or alt
- * @retval last value if > than 6x avg or pass the value back out
- ******************************************************************************/
-double avgDeltaSmoother( double          rawData,
-                         gpsDeltaStruct *delta)
-{
-    double thisDelta;
-    double returnVal;
-
-    thisDelta = delta->last - rawData;
-
-    delta->sum -= delta->oldValues[2]; // pop the old value off of the sum
-    delta->sum += thisDelta;           // push the new value in the sum
-
-    // push the data down the hold stack
-    delta->oldValues[2] = delta->oldValues[1];
-	delta->oldValues[1] = delta->oldValues[0];
-	delta->oldValues[0] = thisDelta;
-    if ( fabs(thisDelta) > 6.0 * fabs( delta->sum / 3.0 ) ) {
-        returnVal = delta->last; // filter (omit) the value
-    } else
-        returnVal = rawData; // send the input value back out
-
-    delta->last = rawData;             // hold input value for next entry
-    return returnVal;
-}
-
-/******************************************************************************
- * @name: thresholdSmoother API threshold filter that uses total speed from Vned
- *        for smoothing gps "glitches" (in delta speed) "spikes" over 15m/s
- * @author
- * @param [in]  in - new value to compare to threshold
- * @param [in]  data - return last good data or current good data
- * @retval N/A
- ******************************************************************************/
-void thresholdSmoother( double         vNedIn[3],
-                        float          vNedOut[3])
-{
-    double        speedSqCurr;
-    double        SPEED_SQ_LIMIT = 225;  // limit the change to 15 m/s
-    static double speedSqPast;
-    static double vNedPast[3];
-
-    // "glitch" filter
-    // Compute the speed
-    speedSqCurr = vNedIn[0]*vNedIn[0] + vNedIn[1]*vNedIn[1] + vNedIn[2]*vNedIn[2];
-
-    // "Filter" the velocity signal if the delta is greater than 15 [ m/s ]
-    //   (This is an 8% margin over expected system dynamics)
-    if( fabs( speedSqCurr - speedSqPast ) > SPEED_SQ_LIMIT ) {
-        // If a glitch is encountered, set output to last "good" value.
-        //  Do not update past with current.
-        vNedOut[0] = (float)vNedPast[0];
-        vNedOut[1] = (float)vNedPast[1];
-        vNedOut[2] = (float)vNedPast[2];
-    } else {
-        // Do not change GPS velocity, update past values with current values
-        speedSqPast = speedSqCurr;
-        vNedPast[0] = vNedIn[0];
-        vNedPast[1] = vNedIn[1];
-        vNedPast[2] = vNedIn[2];
-
-        vNedOut[0] = (float)vNedIn[0];
-        vNedOut[1] = (float)vNedIn[1];
-        vNedOut[2] = (float)vNedIn[2];
-    }
-}
-

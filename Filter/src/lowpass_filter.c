@@ -28,8 +28,9 @@ limitations under the License.
 
 #include <stdint.h>
 
-#include "algorithm.h"
+//#include "algorithm.h"
 #include "lowpass_filter.h"
+#include "Indices.h"
 
 #define WAIT_TIL_VALID 40
 

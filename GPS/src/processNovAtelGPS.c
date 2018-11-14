@@ -33,12 +33,12 @@ limitations under the License.
 
 #include "driverGPS.h"
 #include "NovAtelPacketFormats.h"
-#include "filter.h"
 #include "BITStatus.h"
 
 #define CRC32_POLYNOMIAL 0xEDB88320
 
 static gpsDeltaStruct downVelDelta;
+
 
 /** ****************************************************************************
  * @name processNovAtelBinaryMsg parse a complete NovAtel binary message.
@@ -76,6 +76,73 @@ void processNovAtelBinaryMsg_Fast(char          *msg,
     }
     // bad CRC just return
 }
+
+/** ****************************************************************************
+ * @name parseNovAtelBinaryMsg parse a complete NovAtel binary message.
+ *
+ * @param [in] inByte - next byte from serial stream
+ * @param [in] gpsMsg - GPS message buffer
+ * @param [in] GPSData structure to parse into
+ * @retval N/A
+ ******************************************************************************/
+int parseNovotelBinaryMessage(uint8_t inByte, uint8_t *gpsMsg, GpsData_t *GPSData)
+{
+    static int state = 0;
+    static unsigned int len = 0, headerLen = 0;
+    static uint8_t *ptr;
+	static uint32_t sync = 0;
+	unsigned static int totalLen = 0, msgLen = 0;
+
+
+    sync   = (sync << 8) | inByte;
+    if ((sync & 0x00ffffff) == NOVATEL_OME4_BINARY_HEADER){
+        gpsMsg[0] = (NOVATEL_OME4_BINARY_HEADER >> 16) & 0xff;
+        gpsMsg[1] = (NOVATEL_OME4_BINARY_HEADER >> 8) & 0xff;
+        gpsMsg[2] = NOVATEL_OME4_BINARY_HEADER & 0xff;
+        state     = 1;
+        ptr       = &gpsMsg[3];
+        len       = 3;
+        headerLen = 0;
+        return 0;
+    }
+
+    if(state == 0){
+        return 0;
+    }
+
+    *ptr++ = inByte;
+    len++;
+
+    if (len >= MAX_MSG_LENGTH){
+        // overflow - reset packet engine
+        state = 0;
+        return 1;
+    }
+    switch (state){
+        case 1:
+            // header processing
+            if (headerLen == 0){
+                headerLen = inByte;
+            }else if (len == headerLen){
+                msgLen = *((uint16_t *)&gpsMsg[8]);
+                totalLen = msgLen + headerLen + 4;  // crc included
+                // data next
+                state = 2;
+            }
+            break;
+        case 2:
+            if (len == totalLen){
+                processNovAtelBinaryMsg_Fast((char *)gpsMsg, &len, GPSData);
+                state = 0;
+            }
+            break;
+        default:
+            break;
+    }
+    return 0;
+}
+
+
 
 void processNovAtelBinaryMsg(char          *msg,
                              unsigned int  *msgLength,
@@ -169,8 +236,8 @@ void _parseBestPosB_Fast(logBestPosB   *bestPosB,
         GPSData->lonSign = 1;
     }
 
-    GPSData->updateFlagForEachCall |= 1 << GOT_GGA_MSG;
-    if (bestPosB->sol_status != 0) {  // zero is good fix anything else is enumeratio for bad fix
+    if (bestPosB->sol_status != 0)   // zero is good fix anything else is
+    {                                //   enumeration for bad fix
         GPSData->GPSFix = 0;// PosVelType
         gBitStatus.hwStatus.bit.unlockedInternalGPS = 1; // locked
         gBitStatus.swStatus.bit.noGPSTrackReference = 1; // no GPS track
@@ -179,10 +246,25 @@ void _parseBestPosB_Fast(logBestPosB   *bestPosB,
         GPSData->GPSFix = bestPosB->pos_type;
         gBitStatus.hwStatus.bit.unlockedInternalGPS = 0; // locked
         gBitStatus.swStatus.bit.noGPSTrackReference = 0; // GPS track
-        gGpsDataPtr->HDOP = 9.0f; // force to below threshold
+        gGpsDataPtr->HDOP = 1.0f; // force to below threshold
     }
 
-    GPSData->itow = (uint32_t) bestPosB->header.milliseconds; //(bestPosB->sol_age * 1000.0); // ITOW
+    //0xFFFFFFFC = b11111111111111111111111111111100
+    //0xFFFFFFFd = b11111111111111111111111111111101
+    //0xFFFFFFFe = b11111111111111111111111111111110
+    // If ITOW is the same as the value stored in GPSData->itow then it seems
+    //   that velocity has already been measured at the current time step.  If
+    //   so then set the update flag accordingly, if not then set the GGA value
+    //   only.
+    if( (bestPosB->header.milliseconds == GPSData->itow ) && 
+        (GPSData->updateFlagForEachCall & 0x02 ) )  ///GOT_GGA_MSG
+    {
+        GPSData->updateFlagForEachCall |= 3; //1 << GOT_GGA_MSG;
+    } else {
+        GPSData->updateFlagForEachCall = 1; //GPSData->updateFlagForEachCall & 0xFFFFFFFd;
+    }
+    GPSData->itow = (uint32_t) bestPosB->header.milliseconds;
+
     GPSData->LLHCounter++;
 
     float tmp = (float)1.9230769944E-2 * (float)bestPosB->header.week;
@@ -196,10 +278,11 @@ void _parseBestPosB_Fast(logBestPosB   *bestPosB,
     }
     GPSData->GPSday   = 1;
 
-// Unused in FW
-//    GPSData->LonLatH[0] = (signed long)(GPSData->lon * 1e7);
-//    GPSData->LonLatH[1] = (signed long)(GPSData->lat * 1e7);
-//    GPSData->LonLatH[2] = (signed long)(GPSData->alt * 1e3);
+    // Accuracy measurements
+    GPSData->GPSHorizAcc = sqrtf( bestPosB->lat_sigma * bestPosB->lat_sigma + bestPosB->lon_sigma * bestPosB->lon_sigma );    // [m]
+    GPSData->GPSVertAcc  = bestPosB->hgt_sigma;     // [m]
+
+    GPSData->numSatelites = bestPosB->num_obs;
 }
 
 /** ****************************************************************************
@@ -269,7 +352,7 @@ void _parseBestPosB(char           *completeMessage,
         gBitStatus.hwStatus.bit.unlockedInternalGPS = 1; // not locked
         gBitStatus.swStatus.bit.noGPSTrackReference = 1; // no GPS track
     } else  {
-        gGpsDataPtr->HDOP = 9.0f; // force to below threshold
+        gGpsDataPtr->HDOP = 1.0f; // force to below threshold
         gBitStatus.hwStatus.bit.unlockedInternalGPS = 0; // locked
         gBitStatus.swStatus.bit.noGPSTrackReference = 0; // GPS track
     }
@@ -278,11 +361,6 @@ void _parseBestPosB(char           *completeMessage,
 	memcpy(&GPSData->itow, &completeMessage[16], 4); ///Itow
 
 	GPSData->LLHCounter++;
-
-// Unused in FW
-//	GPSData->LonLatH[0] = (signed long)(GPSData->lon * 1e7);
-//	GPSData->LonLatH[1] = (signed long)(GPSData->lat * 1e7);
-//	GPSData->LonLatH[2] = (signed long)(GPSData->alt * 1e3);
 }
 
 /** ****************************************************************************
@@ -307,18 +385,19 @@ void _parseBestVelB_Fast(logBestVelB   *bestVelB,
 {
     double radTrueCourse = 0.0;
 
-    GPSData->trueCourse = bestVelB->trk_gnd; ///COG
+    GPSData->trueCourse = bestVelB->trk_gnd; ///COG wrt true north
     radTrueCourse       = GPSData->trueCourse * D2R; // [rad]
 
-// Error: Variable never populated so vNed is always zero
-//    GPSData->vNed[0] = GPSData->rawGroundSpeed * cos(radTrueCourse); // [m/s] N
-//    GPSData->vNed[1] = GPSData->rawGroundSpeed * sin(radTrueCourse); // [m/s] E
+    // Velocity information
+    GPSData->rawGroundSpeed = bestVelB->hor_spd; // [m/s]
+
+    // 
     GPSData->vNed[0] = bestVelB->hor_spd * cos(radTrueCourse); // [m/s] N
     GPSData->vNed[1] = bestVelB->hor_spd * sin(radTrueCourse); // [m/s] E
     GPSData->vNed[2] = avgDeltaSmoother( -bestVelB->vert_spd, &downVelDelta);
 
-    GPSData->updateFlagForEachCall |= 1 << GOT_VTG_MSG;
-    if (bestVelB->sol_status != 0) { // zero is good fix anything else is enumeratio for bad fix
+    if (bestVelB->sol_status != 0)   // zero is good fix anything else is
+    {                                //   enumeration for bad fix
         GPSData->GPSFix = bestVelB->vel_type;
         gBitStatus.hwStatus.bit.unlockedInternalGPS = 1; // not locked
         gBitStatus.swStatus.bit.noGPSTrackReference = 1; // no GPS track
@@ -327,8 +406,21 @@ void _parseBestVelB_Fast(logBestVelB   *bestVelB,
         GPSData->GPSFix = 0;
         gBitStatus.hwStatus.bit.unlockedInternalGPS = 0; // not locked
         gBitStatus.swStatus.bit.noGPSTrackReference = 0; // GPS track
-        gGpsDataPtr->HDOP = 9.0f; //
+        gGpsDataPtr->HDOP = 1.0f; //
     }
+
+    // If ITOW is the same as the value stored in GPSData->itow then it seems
+    //   that velocity has already been measured at the current time step.  If
+    //   so then set the update flag accordingly, if not then set the GGA value
+    //   only.
+    if( ((uint32_t)bestVelB->header.milliseconds == GPSData->itow ) && 
+        (GPSData->updateFlagForEachCall & 0x01 ) )
+    {
+        GPSData->updateFlagForEachCall |= 3; //1 << GOT_VTG_MSG;
+    } else {
+        GPSData->updateFlagForEachCall = 2; //GPSData->updateFlagForEachCall & 0xFFFFFFFe;
+    }
+    GPSData->itow = (uint32_t) bestVelB->header.milliseconds;
 
     GPSData->VELCounter++;
 }
@@ -362,12 +454,13 @@ void _parseBestVelB(char           *completeMessage,
 
 	GPSData->updateFlagForEachCall |= 1 << GOT_VTG_MSG;
 
-    if (SolStatus[0] != 0) { // zero is good fix anything else is enumeratio for bad fix
+    if (SolStatus[0] != 0)   // zero is good fix anything else is
+    {                        //   enumeration for bad fix
         gGpsDataPtr->HDOP = 21.0f; //
         gBitStatus.hwStatus.bit.unlockedInternalGPS = 1; // not locked
         gBitStatus.swStatus.bit.noGPSTrackReference = 1; // GPS track
     } else {
-        gGpsDataPtr->HDOP = 9.0f; //
+        gGpsDataPtr->HDOP = 1.0f; //
         gBitStatus.hwStatus.bit.unlockedInternalGPS = 0; // not locked
         gBitStatus.swStatus.bit.noGPSTrackReference = 0; // GPS track
     }

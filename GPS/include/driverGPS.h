@@ -32,7 +32,6 @@ limitations under the License.
 
 #include "GlobalConstants.h"
 #include "GpsData.h"
-#include "port_def.h" // port_struct, COM_BUF_SIZE
 
 /// bit position of updateFlagForEachCall;
 #define GOT_GGA_MSG  			 0
@@ -113,6 +112,8 @@ limitations under the License.
 #define SIRF_BINARY_HEADER         0xA0A2
 #define SIRF_END_SEQUENCE          0xB0B3
 #define MAX_HEADER_LEN               4
+#define NMEA_SYNC_1  			   0x00244750 // $GP
+#define NMEA_SYNC_2  			   0x0024474E // $GN
 
 /// maximum waiting time for a GPS message to complete
 //#define GPS_PACKET_RECEIVE_TIMEOUT 500  ///< 0.5 second
@@ -165,13 +166,22 @@ typedef struct  {
 	double lon_min_fraction;
 } NmeaLatLonSTRUCT;
 
+// delta struct
+typedef struct {
+    double oldValues[3]; // moving window of delta values
+    double sum;
+    double last; // Last whole value
+} gpsDeltaStruct;
+
+double avgDeltaSmoother(double in, gpsDeltaStruct* data);
+void   thresholdSmoother( double dataIn[3], float dataOut[3]);
+
 
 /// function prototypes
 
 /// interface with algorithms
 // these are duplicated in gps.h
 // driverGPSAllEntrance.cpp
-void initGPSHandler(void);
 void GPSHandler(void);
 
 
@@ -204,19 +214,24 @@ void processNovAtelBinaryMsg_Fast(char *msg, unsigned int *msgLength, GpsData_t 
 extern uint32_t  baudEnumToBaudRate(int baudRate);
 
 int      gpsBytesAvailable();
-void     initGpsUart(int baud);
+int      initGpsUart(int baudrate);
 void     initOnePpsUart( void );
-void     setExternalPortPtr(port_struct* gGpsPortPtr);
-void     flushGPSRecBuf(void);
-BOOL     isGpsTxEmpty(void);
-uint16_t delBytesGpsBuf(uint16_t numToPop);
-uint16_t peekWordGpsBuf(uint16_t index);
-uint8_t  peekByteGpsBuf(uint16_t index);
-unsigned long peekGPSmsgHeader(uint16_t index, GpsData_t *GPSData);
+//void     setExternalPortPtr(port_struct* gGpsPortPtr);
+//void     flushGPSRecBuf(void);
+//BOOL     isGpsTxEmpty(void);
+//uint16_t delBytesGpsBuf(uint16_t numToPop);
+//uint16_t peekWordGpsBuf(uint16_t index);
+//uint8_t  peekByteGpsBuf(uint16_t index);
+//unsigned long peekGPSmsgHeader(uint16_t index, GpsData_t *GPSData);
 int      writeGps(char     *send, uint16_t len);
-int16_t  findHeader(uint16_t numInBuff, GpsData_t *GPSData);
-int16_t  retrieveGpsMsg(uint16_t numBytes, GpsData_t *GPSData, uint8_t *outBuffer);
-unsigned char autobaud(GpsData_t* GPSData);
+//int16_t  findHeader(uint16_t numInBuff, GpsData_t *GPSData);
+//int16_t  retrieveGpsMsg(uint16_t numBytes, GpsData_t *GPSData, uint8_t *outBuffer);
+//unsigned char autobaud(GpsData_t* GPSData);
+BOOL HandleGps(GpsData_t *GPSData);
+int parseNMEAMessage(uint8_t inByte, uint8_t *gpsMsg, GpsData_t *GPSData);
+int parseNovotelBinaryMessage(uint8_t inByte, uint8_t *gpsMsg, GpsData_t *GPSData);
+
+
 
 #define GPS_INTERFACE_RX_BUFFER_SIZE 512
 #define GPS_INTERFACE_TX_BUFFER_SIZE  30

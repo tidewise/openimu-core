@@ -205,17 +205,8 @@ void debounce_calc(debounce *dBounce,
 
 float smoothing_filter(float *in);
 
-// delta struct
-typedef struct {
-    double oldValues[3]; // moving window of delta values
-    double sum;
-    double last; // Last whole value
-} gpsDeltaStruct;
-
 // takes the change in state each time step and averages the amount of change
 // over 3 frames with a 6x threshold for filtering
-double avgDeltaSmoother(double in, gpsDeltaStruct* data);
-void thresholdSmoother( double dataIn[3], float dataOut[3]);
 BOOL Select_LP_filter(int sensor, int cutoffFreq);
 
 

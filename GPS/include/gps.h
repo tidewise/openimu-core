@@ -20,10 +20,6 @@
 
 #include <stdint.h>
 
-void initGPSHandler(void); /// note: should pass in SPI or UART
-void GPSHandler(void);
-void TaskGps(void);
-
 // FIXME ECW: implement GpsWhoAmI and GpsSelfTest
 uint8_t  GpsWhoAmI(uint32_t *whoami); /// returns true if value is as expected
 uint8_t  GpsSelfTest();
@@ -36,6 +32,9 @@ uint8_t  GpsSelfTest();
 //#define STREAM_GPS GPS_NO_STREAM
 #define STREAM_GPS GPS_NMEA_DEBUG_STREAM
 #endif
+
+#define NMEA_SYNC_1  0x00244750 // $GP
+#define NMEA_SYNC_2  0x0024474E // $GN
 
 
 #endif /* GPS_H */

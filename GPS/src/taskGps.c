@@ -32,6 +32,9 @@ limitations under the License.
 #include "osapi.h"
 #include "platformAPI.h"
 #include "algorithmAPI.h"
+#include "gpsAPI.h"
+
+int gpsIdleCnt = 0;
 
 /** ****************************************************************************
  * @name TaskGps
@@ -42,55 +45,52 @@ limitations under the License.
  * @param N/A
  * @retval N/A
  ******************************************************************************/
-void TaskGps(void)
+void TaskGps(void const *argument)
 {
+    int    bytesAvailable;
     static uint32_t updateHDOP, pollSirfCnt;
 
-    // UART_COMM is 0
-    if (getUnitCommunicationType() != UART_COMM) { // UART / SPI
-        // TODO - still can use debug serial port
-        // but for now - just idle loop.
-        while(1) {
+    while(gpsSerialChan == UART_CHANNEL_NONE) {
+        // nothing to do untill port decided
             OS_Delay( 1000);
         }
-    }
 
     // start out with the DOP high
     gGpsDataPtr->HDOP = 50.0;
-
-    /// initial internal GPS settings, uses settings to configure then switch
-    //  to BINARY and faster baud
-    // But so far only external GPS
- //   if ( IsInternalGPS() == true)  {
- //       SetConfigurationProtocolGPS(NMEA_TEXT);
- //       SetConfigurationBaudRateGps(BAUD_4800);
- //   }
 
     initGPSHandler();
     GPSHandler();
 
     while (1) {
-        // could wait on a message from the data acquistion
-        OS_Delay(5000);
 
-        if (gpsUsedInAlgorithm())   // useGPS   so far only external GPS
+//        if (gpsUsedInAlgorithm())   // useGPS   so far only external GPS
+        if (1)   // useGPS   so far only external GPS
         {
+           	bytesAvailable = gpsBytesAvailable();
+            if(!bytesAvailable){
+                gpsIdleCnt++;
+                OS_Delay(20);
+                continue;
+            }
             GPSHandler();
-            uart_BIT(GPS_UART);  // 
+            uart_BIT(GPS_SERIAL_PORT);  // 
             // or signal other tasks based on these params?
+
+            if(gGpsDataPtr->GPSProtocol == SIRF_BINARY){
+                if (((getSystemTime() / 1000) - updateHDOP) > 600)
+                {
+                gGpsDataPtr->HDOP = 50.0;
+                updateHDOP = (getSystemTime() / 1000);
+                pollSiRFVersionMsg();
+                pollSirfCnt++;
+                }
+            }
 
             // Set the GPS validity, based on the Horizontal Dilution of Precision
             if (gGpsDataPtr->gpsValid && gGpsDataPtr->HDOP > 15.0) {
                 gGpsDataPtr->gpsValid = false;
             } else if (gGpsDataPtr->HDOP < 10.0) {
                 gGpsDataPtr->gpsValid = true;
-            }
-
-            if (((getSystemTime() / 1000) - updateHDOP) > 600) {
-                gGpsDataPtr->HDOP = 50.0;
-                updateHDOP = (getSystemTime() / 1000);
-                pollSiRFVersionMsg();
-                pollSirfCnt++;
             }
         }
     }

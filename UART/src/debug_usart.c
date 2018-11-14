@@ -27,18 +27,12 @@ See the License for the specific language governing permissions and
 limitations under the License.
 *******************************************************************************/
 
-
-#include "stm32f4xx.h"
-#include "stm32f4xx_conf.h"
-#include "boardDefinition.h"
 #include "debug_usart.h"
-#include "port_def.h" // port_struct, COM_BUF_SIZE
-#include "comm_buffers.h"
 #include "osapi.h"
 #include "osresources.h"
 #include "platformAPI.h"
+#include "uart.h"
 
-port_struct debugPort;
 #define PORT_DBG_RX_BUF_SIZE COM_BUF_SIZE // 512
 #define PORT_DBG_TX_BUF_SIZE COM_BUF_SIZE
 
@@ -50,6 +44,15 @@ port_struct debugPort;
 #define _BS    0x08
 #define _DEL   0x7F
 
+int debugSerialChan = UART_CHANNEL_2;   // defaul channel
+
+void  InitDebugSerialCommunication(uint32_t baudrate)
+{
+    debugSerialChan = platformGetSerialChannel(DEBUG_SERIAL_PORT);
+    uart_init(debugSerialChan, baudrate);
+}
+
+
 /** ****************************************************************************
  * @name DebugSerialPutChar
  * @brief Write character out Serial Port.
@@ -58,12 +61,7 @@ port_struct debugPort;
  *******************************************************************************/
 unsigned char DebugSerialPutChar (unsigned char c)
 { 
-  //FIXME if protection is needed it should be a mutex
-//    OSDisableHook();
-    COM_buf_add(&(debugPort.xmit_buf), (unsigned char*)&c, 1);
-//    OSEnableHook();
-
-    USART_ITConfig( DEBUG_USART, USART_IT_TXE, ENABLE );
+    uart_write(debugSerialChan, &c, 1);
     return c;
 }
 
@@ -85,9 +83,13 @@ unsigned char DebugSerialPutChar (unsigned char c)
 int DebugSerialReadLine(uint8_t  *buf, uint32_t *index, uint32_t len)
 {
     uint8_t c = 0, lf = 0;
+    int num;
 
-    while ( COM_buf_bytes_available(&(debugPort.rec_buf)) && c != _LF) {
-        COM_buf_get(&(debugPort.rec_buf), &c, 1);   // get a character
+    while (c != _LF){
+        num = uart_read(debugSerialChan, &c, 1);
+        if(num <= 0){
+            break;
+        }
         
         if (_TAB == c) {
             c = _SPACE;
@@ -139,134 +141,4 @@ int DebugSerialReadLine(uint8_t  *buf, uint32_t *index, uint32_t len)
 }
 
 
-/** ****************************************************************************
- * @name IsDebugSerialIdle
- * @brief Determines if the serial port is idle, only should be used when
- *        ouputting a large quantity of data as fast as possible
- * @param N/A
- * @retval True if serial port is idle
- *******************************************************************************/
-int IsDebugSerialIdle()
-{   // reverses the return so empty is true
-    return (COM_buf_bytes_available(&(debugPort.xmit_buf) ) == 0) ? 1 : 0;
-}
 
-
-
-/** ****************************************************************************
- * @name InitSerialCommunication
- * @brief Initialize DEBUG serial communication on USART1
- * @param N/A
- * @retval N/A
- *******************************************************************************/
-void InitDebugSerialCommunication( uint32_t baudRate )
-{
-    GPIO_InitTypeDef  GPIO_InitStructure;
-    USART_InitTypeDef USART_InitStructure;
-    NVIC_InitTypeDef  NVIC_InitStructure;
-	static uint8_t    debugPort_rx [PORT_DBG_RX_BUF_SIZE];
-    static uint8_t    debugPort_tx [PORT_DBG_TX_BUF_SIZE];
-
-    /// Enable GPIO clock
-    RCC_AHB1PeriphClockCmd(DEBUG_USART_TX_GPIO_CLK | DEBUG_USART_RX_GPIO_CLK, ENABLE);
-    RCC_APB2PeriphClockCmd(DEBUG_USART_CLK, ENABLE);
-
-    /// configure COM1 TX Pins
-    GPIO_InitStructure.GPIO_Pin   = DEBUG_USART_TX_PIN; // A9
-    GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-    GPIO_InitStructure.GPIO_Mode  = GPIO_Mode_AF;
-    GPIO_InitStructure.GPIO_PuPd  = GPIO_PuPd_UP;
-    GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-    GPIO_Init(DEBUG_USART_TX_GPIO_PORT, &GPIO_InitStructure);
-    GPIO_PinAFConfig(DEBUG_USART_TX_GPIO_PORT,
-                     DEBUG_USART_TX_SOURCE,
-                     DEBUG_USART_TX_AF);
-
-    /// configure COM1 RX Pins
-    GPIO_InitStructure.GPIO_Pin = DEBUG_USART_RX_PIN; // A10
-    GPIO_Init(DEBUG_USART_RX_GPIO_PORT, &GPIO_InitStructure);
-    GPIO_PinAFConfig(DEBUG_USART_RX_GPIO_PORT,
-                     DEBUG_USART_RX_SOURCE,
-                     DEBUG_USART_RX_AF);
-
-    /** USARTx configured as follow:
-    - BaudRate = 921600 baud - passed in
-    - Word Length = 8 Bits
-    - One Stop Bit
-    - No parity
-    - Hardware flow control disabled (RTS and CTS signals)
-    - Receive and transmit enabled
-    */
-    USART_InitStructure.USART_BaudRate            = baudRate;
-    USART_InitStructure.USART_WordLength          = USART_WordLength_8b;
-    USART_InitStructure.USART_StopBits            = USART_StopBits_1;
-    USART_InitStructure.USART_Parity              = USART_Parity_No;
-    USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
-    USART_InitStructure.USART_Mode                = USART_Mode_Rx | USART_Mode_Tx;
-
-    USART_Init(DEBUG_USART, &USART_InitStructure);
-
-    /// initialize software circular buffers comm_buffers.c
-    COM_buf_init(&debugPort,
-                 debugPort_tx,
-                 debugPort_rx,
-                 PORT_DBG_RX_BUF_SIZE,
-                 PORT_DBG_TX_BUF_SIZE);
-
-    USART_Cmd(DEBUG_USART, ENABLE);
-    /// clear anything in the rx
-    if (USART_GetFlagStatus(DEBUG_USART, USART_FLAG_RXNE)) {
-        USART_ReceiveData(DEBUG_USART);
-    }
-
-    /// now for interrupts
-    if(cliSem){
-		USART_ITConfig( DEBUG_USART, USART_IT_RXNE, ENABLE );
-		NVIC_InitStructure.NVIC_IRQChannel = DEBUG_USART_IRQn;
-		NVIC_InitStructure.NVIC_IRQChannelPreemptionPriority = 0x9;
-		NVIC_InitStructure.NVIC_IRQChannelSubPriority        = 0x0;
-		NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
-		NVIC_Init( &NVIC_InitStructure );
-    }
-}
-
-/** ****************************************************************************
- * @name DEBUG_USART_IRQ
- * @brief USART handles rx and tx interrupts
- * @param N/A
- * @retval N/A
- ******************************************************************************/
-void DEBUG_USART_IRQ()
-{
-    uint8_t ch;
-    OSEnterISR();
-
-    //volatile int ulDummy = OSEnDisableIntFromISR();
-
-//FIXME if protection is needed it should be a mutex
-//    OSDisableHook(); /// to disable interrupts
-
-    /// Check the state of the "receive data register not empty" flag. Set binary
-    ///   semaphore when detected
-    if (USART_GetFlagStatus(DEBUG_USART, USART_FLAG_RXNE)) {
-        ch = DEBUG_USART->DR;
-        if(cliSem){
-			COM_buf_add(&(debugPort.rec_buf), &ch, 1);
-			osSemaphoreRelease(cliSem);
-        }
-    }
-
-    /// Check the state of the "transmit data register empty" flag
-    if (USART_GetFlagStatus(DEBUG_USART, USART_FLAG_TXE)) {
-          if ( IsDebugSerialIdle() ) {
-            USART_ITConfig( DEBUG_USART, USART_IT_TXE, DISABLE );
-        } else {
-            COM_buf_get(&(debugPort.xmit_buf), // get a character
-                        &ch,
-                        1);
-            USART_SendData(DEBUG_USART, ch);
-        }
-    }
-
-    OSExitISR();
-}

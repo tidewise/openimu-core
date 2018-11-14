@@ -6,23 +6,18 @@
  */
 
 #include <math.h>
-
 #include "algorithm.h"
-
 #include "TransformationMath.h"
 #include "MatrixMath.h"
 #include "VectorMath.h"
-
 #include "MagAlign.h"
-
 #include "Indices.h"
-
 #include "EKF_Algorithm.h"   // for gKalmanFilter
-
 #include "GpsData.h"
 #include "WorldMagneticModel.h"
-#include "platformAPI.h"
 
+#include "arm_math.h"
+#include "FastInvTrigFuncs.h"
 
 static void _TransformMagFieldToPerpFrame( real* MagFieldVector,
                                            real* nedMagFieldVector,
@@ -47,10 +42,10 @@ BOOL FieldVectorsToEulerAngles( real* GravityVector,
                                 uint8_t usePredFlag,
                                 real* eulerAngles )
 {
-    real nedMagFieldVector[3] = {0.0};
+    real nedMagFieldVector[NUM_AXIS] = {0.0};
     real tmp[2];
     real xMag, yMag;
-    real gravityUnitVector[3] = {0.0};
+    real gravityUnitVector[NUM_AXIS] = {0.0};
 
     // At rest, gravity is the negative of the acceleration vector: gHat = -a_Body
     VectorNormalize(GravityVector, gravityUnitVector);
@@ -59,9 +54,15 @@ BOOL FieldVectorsToEulerAngles( real* GravityVector,
     gravityUnitVector[2] = -gravityUnitVector[2];
 
     /// calculate roll and pitch from the gravity-vector
+#ifndef FAST_MATH
     eulerAngles[ROLL]  = (real)( atan2( -GravityVector[Y_AXIS],
                                         -GravityVector[Z_AXIS] ) );
     eulerAngles[PITCH] = (real)( -asin( gravityUnitVector[X_AXIS] ) );
+#else
+    eulerAngles[ROLL]  = (real)( fatan2_rad( -GravityVector[Y_AXIS],
+                                             -GravityVector[Z_AXIS] ) );
+    eulerAngles[PITCH] = (real)( -fasin_rad( gravityUnitVector[X_AXIS] ) );
+#endif
 
     /// yaw angle (unit magnetic field) in the plane normal to the gravity vector
     if ( magUsedInAlgorithm() )
@@ -97,7 +98,11 @@ BOOL FieldVectorsToEulerAngles( real* GravityVector,
 
         // The negative of the angle the vector makes with the unrotated (psi = 0)
         //   frame is the yaw-angle of the initial frame.
+#ifndef FAST_MATH
         eulerAngles[YAW] = (real)( -atan2( yMag, xMag ) );
+#else
+        eulerAngles[YAW] = (real)( -fatan2_rad( yMag, xMag ) );
+#endif
     } else {
         // For VG, set the measured heading to the predicted heading (this
         //   forces the error to zero)
@@ -118,10 +123,17 @@ static void _TransformMagFieldToPerpFrame( real* magFieldVector,
     real sinPitch, cosPitch;
     real temp;
 
+#ifndef FAST_MATH
     sinRoll  = (real)(sin( eulerAngles[ROLL] ));
     cosRoll  = (real)(cos( eulerAngles[ROLL] ));
     sinPitch = (real)(sin( eulerAngles[PITCH] ));
     cosPitch = (real)(cos( eulerAngles[PITCH] ));
+#else
+    sinRoll  = (real)(arm_sin_f32( eulerAngles[ROLL] ));
+    cosRoll  = (real)(arm_cos_f32( eulerAngles[ROLL] ));
+    sinPitch = (real)(arm_sin_f32( eulerAngles[PITCH] ));
+    cosPitch = (real)(arm_cos_f32( eulerAngles[PITCH] ));
+#endif
 
     temp = sinRoll * magFieldVector[Y_AXIS] + cosRoll * magFieldVector[Z_AXIS];
 
@@ -135,8 +147,8 @@ static void _TransformMagFieldToPerpFrame( real* magFieldVector,
 //* @name LLA_To_R_EinN returns the rotation matrix that converts from the Earth-
 //*                     Centered, Earth-Fixed [m] to the North/East/Down-Frame [m]
 //*
-//* @details Pre calculated all non-changing constants and unfolded the matricies
-//* @param [in] LLA - array with the Latitude, Lonigtude and Altitude [rad]
+//* @details Pre calculated all non-changing constants and unfolded the matrices
+//* @param [in] LLA - array with the Latitude, Longitude and Altitude [rad]
 //* @param [out] R_EinN - rotation matrix from ECEF to NED
 //* @retval always 1
 //******************************************************************************/
@@ -146,10 +158,10 @@ BOOL LLA_To_R_EinN( double* llaRad,
     real sinLat, cosLat;
     real sinLon, cosLon;
 
-    sinLat = (real)sin(llaRad[LAT_IDX]);
-    cosLat = (real)cos(llaRad[LAT_IDX]);
-    sinLon = (real)sin(llaRad[LON_IDX]);
-    cosLon = (real)cos(llaRad[LON_IDX]);
+    sinLat = (real)sin(llaRad[LAT]);
+    cosLat = (real)cos(llaRad[LAT]);
+    sinLon = (real)sin(llaRad[LON]);
+    cosLon = (real)cos(llaRad[LON]);
 
     // First row
     *(R_EinN + 0 * 3 + 0) = -sinLat * cosLon;
@@ -173,8 +185,8 @@ BOOL LLA_To_R_EinN( double* llaRad,
 ///** ***************************************************************************
 //* @name LLA_To_R_NinE returns a rotation matrix North [m], East [m] down [m] to
 //*       Earth Centered Earth Fixed [m] coordinates
-//* @details Pre calculated all non-changing constants and unfolded the matricies
-//* @param [in] LLA - array with the Latitude, Lonigtude and Altitude [rad]
+//* @details Pre calculated all non-changing constants and unfolded the matrices
+//* @param [in] LLA - array with the Latitude, Longitude and Altitude [rad]
 //* @param [out] InvRne - rotation matrix from NED to ECEF
 //* @retval always 1
 //******************************************************************************/
@@ -184,10 +196,10 @@ BOOL LLA_To_R_NinE( double* llaRad,
     real sinLat, cosLat;
     real sinLon, cosLon;
 
-    sinLat = (real)(sin((real)llaRad[LAT_IDX]));
-    cosLat = (real)(cos((real)llaRad[LAT_IDX]));
-    sinLon = (real)(sin((real)llaRad[LON_IDX]));
-    cosLon = (real)(cos((real)llaRad[LON_IDX]));
+    sinLat = (real)(sin((real)llaRad[LAT]));
+    cosLat = (real)(cos((real)llaRad[LAT]));
+    sinLon = (real)(sin((real)llaRad[LON]));
+    cosLon = (real)(cos((real)llaRad[LON]));
 
     *(R_NinE + 0 * 3 + 0) = -sinLat * cosLon;
     *(R_NinE + 0 * 3 + 1) = -sinLon;
@@ -207,8 +219,8 @@ BOOL LLA_To_R_NinE( double* llaRad,
 
 ///** ***************************************************************************
 //* @name LLA2Base Express LLA in a local NED Base Frame
-//* @details Pre calculated all non-changing constants and unfolded the matricies
-//* @param [in]  LLA - array with the currrent Latitude, Lonigtude and Altitude [rad]
+//* @details Pre calculated all non-changing constants and unfolded the matrices
+//* @param [in]  LLA - array with the current Latitude, Longitude and Altitude [rad]
 //* @param [in]  BaseECEF - start of frame position
 //* @param [in]  Rne - rotation matrix from ECEF to NED
 //* @param [out] NED - output of the position in North East and Down coords
@@ -221,13 +233,13 @@ BOOL LLA_To_Base( double* llaRad,  // in
                   real* R_NinE,
                   double* rECEF)  // out
 {
-    real dr_E[3];
+    real dr_E[NUM_AXIS];
 
     double N;
-    double sinLat = sin(llaRad[LAT_IDX]);
-    double cosLat = cos(llaRad[LAT_IDX]);
-    double sinLon = sin(llaRad[LON_IDX]);
-    double cosLon = cos(llaRad[LON_IDX]);
+    double sinLat = sin(llaRad[LAT]);
+    double cosLat = cos(llaRad[LAT]);
+    double sinLon = sin(llaRad[LON]);
+    double cosLon = cos(llaRad[LON]);
 
     real sinLat_r = (real)sinLat;
     real cosLat_r = (real)cosLat;
@@ -237,10 +249,10 @@ BOOL LLA_To_Base( double* llaRad,  // in
     N = E_MAJOR / sqrt(1.0 - (E_ECC_SQ * sinLat * sinLat)); // radius of Curvature [meters]
 
     //LLA_To_ECEF(llaRad, rECEF);
-    double temp_d = (N + llaRad[ALT_IDX]) * cosLat;
+    double temp_d = (N + llaRad[ALT]) * cosLat;
     rECEF[X_AXIS] = temp_d * cosLon;
     rECEF[Y_AXIS] = temp_d * sinLon;
-    rECEF[Z_AXIS] = ((E_MINOR_OVER_MAJOR_SQ * N) + llaRad[ALT_IDX]) * sinLat;
+    rECEF[Z_AXIS] = ((E_MINOR_OVER_MAJOR_SQ * N) + llaRad[ALT]) * sinLat;
 
     dr_E[X_AXIS] = (real)( rECEF[X_AXIS] - *(rECEF_Init + X_AXIS) );
     dr_E[Y_AXIS] = (real)( rECEF[Y_AXIS] - *(rECEF_Init + Y_AXIS) );
@@ -294,17 +306,17 @@ BOOL LLA_To_ECEF( double* lla_Rad,
                   double* ecef_m )
 {
     double N;
-    double cosLat = cos( lla_Rad[LAT_IDX] );
-    double sinLat = sin( lla_Rad[LAT_IDX] );
-    double cosLon = cos( lla_Rad[LON_IDX] );
-    double sinLon = sin( lla_Rad[LON_IDX] );
+    double cosLat = cos( lla_Rad[LAT] );
+    double sinLat = sin( lla_Rad[LAT] );
+    double cosLon = cos( lla_Rad[LON] );
+    double sinLon = sin( lla_Rad[LON] );
 
     N = E_MAJOR / sqrt(1.0 - (E_ECC_SQ * sinLat * sinLat)); // radius of Curvature [meters]
 
-    double temp = (N + lla_Rad[ALT_IDX]) * cosLat;
+    double temp = (N + lla_Rad[ALT]) * cosLat;
     ecef_m[X_AXIS] = temp * cosLon;
     ecef_m[Y_AXIS] = temp * sinLon;
-    ecef_m[Z_AXIS] = ((E_MINOR_OVER_MAJOR_SQ * N) + lla_Rad[ALT_IDX]) * sinLat;
+    ecef_m[Z_AXIS] = ((E_MINOR_OVER_MAJOR_SQ * N) + lla_Rad[ALT]) * sinLat;
 
     return 1;
 }
@@ -364,11 +376,11 @@ BOOL ECEF_To_LLA(double* llaDeg, double* ecef_m)
     cosTheta = cos(theta);
 
     Lat = atan2((ecef_m[Z_AXIS] + EP_SQ * sinTheta * sinTheta * sinTheta), (P - E_ECC_SQxE_MAJOR * cosTheta * cosTheta * cosTheta));
-    *(llaDeg + LAT_IDX) = Lat * R2D;
-    *(llaDeg + LON_IDX) = atan2(ecef_m[Y_AXIS], ecef_m[X_AXIS]) * R2D; // arctan(Y/X)
+    *(llaDeg + LAT) = Lat * R2D;
+    *(llaDeg + LON) = atan2(ecef_m[Y_AXIS], ecef_m[X_AXIS]) * R2D; // arctan(Y/X)
 
     sinLat = sin(Lat);
-    *(llaDeg + ALT_IDX) = P / cos(Lat) - E_MAJOR / sqrt(1.0 - E_ECC_SQ * sinLat * sinLat); // alt
+    *(llaDeg + ALT) = P / cos(Lat) - E_MAJOR / sqrt(1.0 - E_ECC_SQ * sinLat * sinLat); // alt
 
     return 1;
 }
@@ -387,10 +399,20 @@ BOOL VelECEF_To_VelNED( double* LLA,
                         real* VelECEF,
                         real* VelNED )
 {
-    real cosLat = (real)(cos( (real)*(LLA + LAT_IDX) ));
-    real sinLat = (real)(sin( (real)*(LLA + LAT_IDX) ));
-    real cosLon = (real)(cos( (real)*(LLA + LON_IDX) ));
-    real sinLon = (real)(sin( (real)*(LLA + LON_IDX) ));
+    real cosLat, sinLat;
+    real cosLon, sinLon;
+
+#ifndef FAST_MATH
+    cosLat = (real)(cos( (real)*(LLA + LAT) ));
+    sinLat = (real)(sin( (real)*(LLA + LAT) ));
+    cosLon = (real)(cos( (real)*(LLA + LON) ));
+    sinLon = (real)(sin( (real)*(LLA + LON) ));
+#else
+    cosLat = (real)(arm_cos_f32( (real)*(LLA + LAT) ));
+    sinLat = (real)(arm_sin_f32( (real)*(LLA + LAT) ));
+    cosLon = (real)(arm_cos_f32( (real)*(LLA + LON) ));
+    sinLon = (real)(arm_sin_f32( (real)*(LLA + LON) ));
+#endif
 
     // North
     *(VelNED+X_AXIS) = -sinLat * cosLon * *(VelECEF + X_AXIS) +
@@ -438,10 +460,11 @@ void GPS_PosVel_To_NED(void)
         // ResetINS;  % <--need to reset H and R for each case (INS, MagOnly, ...)
 
         // Reset prediction values
-        gKalmanFilter.Position_N[LAT_IDX] = 0.0;
-        gKalmanFilter.Position_N[LON_IDX] = 0.0;
-        gKalmanFilter.Position_N[ALT_IDX] = 0.0;
+        gKalmanFilter.Position_N[LAT] = 0.0;
+        gKalmanFilter.Position_N[LON] = 0.0;
+        gKalmanFilter.Position_N[ALT] = 0.0;
 
+        // Should use the input structure (JSM)
         gKalmanFilter.Velocity_N[X_AXIS] = (real)gGpsDataPtr->vNed[X_AXIS];
         gKalmanFilter.Velocity_N[Y_AXIS] = (real)gGpsDataPtr->vNed[Y_AXIS];
         gKalmanFilter.Velocity_N[Z_AXIS] = (real)gGpsDataPtr->vNed[Z_AXIS];
@@ -460,10 +483,17 @@ void GPS_PosVel_To_NED(void)
             //   solution.  rotate the quat by the declination at the current
             // position.
             real qDecl[4];
+#ifndef FAST_MATH
             qDecl[Q0] = cos((real)0.5 * gWorldMagModel.decl_rad);
             qDecl[Q1] = (real)0.0;
             qDecl[Q2] = (real)0.0;
             qDecl[Q3] = sin((real)0.5 * gWorldMagModel.decl_rad);
+#else
+            qDecl[Q0] = arm_cos_f32((real)0.5 * gWorldMagModel.decl_rad);
+            qDecl[Q1] = (real)0.0;
+            qDecl[Q2] = (real)0.0;
+            qDecl[Q3] = arm_sin_f32((real)0.5 * gWorldMagModel.decl_rad);
+#endif
 
             real Q[4][4] = { { qDecl[Q0], -qDecl[Q1], -qDecl[Q2], -qDecl[Q3] },
             { qDecl[Q1],  qDecl[Q0], -qDecl[Q3],  qDecl[Q2] },

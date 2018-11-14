@@ -37,7 +37,7 @@ real VectorMag( real *vectorIn )
     temp[2] = vectorIn[2] * vectorIn[2];
 
     // sqrt( v1^2 + v2^2 + v3^2 )
-    return( (real)(sqrt( temp[0] + temp[1] + temp[2] )) );
+    return( (real)(sqrtf( temp[0] + temp[1] + temp[2] )) );
 }
 
 
