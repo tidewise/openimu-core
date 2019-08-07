@@ -113,6 +113,7 @@ typedef struct {
     uint8_t           opMode;
     uint8_t           turnSwitchFlag;
     uint8_t           linAccelSwitch;
+    uint8_t           usedCourseAsHeading;
 } EKF_OutputDataStruct;
 
 extern EKF_OutputDataStruct gEKFOutputData;
@@ -133,6 +134,7 @@ void EKF_GetEstimatedLLA(double *LLA);
 
 void EKF_GetOperationalMode(uint8_t *EKF_OperMode);
 void EKF_GetOperationalSwitches(uint8_t *EKF_LinAccelSwitch, uint8_t *EKF_TurnSwitch);
+void EKF_GetCourseUsedAsHeading(uint8_t* EKF_CourseUsedAsHeading);
 
 // Setter functions
 void EKF_SetInputStruct(double *accels, double *rates, double *mags, gpsDataStruct_t *gps);

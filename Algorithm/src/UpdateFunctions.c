@@ -152,7 +152,10 @@ updateCntr[0] = updateCntr[0] + 1;
 
                 // When the system is at rest, use the magnetometer readings for
                 //   heading updates.  DEBUG: 0.1 is arbitrary.
-                useMagHeading = ( gEKFInputData.rawGroundSpeed <= 0.45 );  // 0.45 m/s ~= 1.0 mph
+                useMagHeading =
+                    gAlgorithm.Behavior.bit.useCourseHeading ?
+                    ( gEKFInputData.rawGroundSpeed <= 0.45 ) : 1;  // 0.45 m/s ~= 1.0 mph
+                gBitStatus.swStatus.bit.useCourseHeading = !useMagHeading;
 
                 // This Sequential-Filter (three-stage approach) is nearly as
                 //   good as the full implementation -- we also can split it

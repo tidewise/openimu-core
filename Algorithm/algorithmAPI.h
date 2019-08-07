@@ -39,7 +39,10 @@ void applyNewScaledSensorsData();
 void setAlgorithmExeFreq(int freq);
 void enableMagInAlgorithm(BOOL enable);
 BOOL magUsedInAlgorithm();
+void enableGpsInAlgorithm(BOOL enable);
 BOOL gpsUsedInAlgorithm();
+BOOL courseUsedAsHeadingInAlgorithm();
+void enableCourseAsHeadingInAlgorithm(BOOL flag);
 extern void   SetAlgorithmUseDgps(BOOL d);
 
 #endif
