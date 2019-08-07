@@ -128,6 +128,16 @@ BOOL freeIntegrationEnabled()
     return gAlgorithm.Behavior.bit.freeIntegrate;
 }   
 
+void enableCourseAsHeadingInAlgorithm(BOOL enable)
+{
+    gAlgorithm.Behavior.bit.useCourseHeading = enable;
+}
+
+BOOL courseUsedAsHeadingInAlgorithm()
+{
+    return gAlgorithm.Behavior.bit.useCourseHeading != 0;
+}
+
 void enableMagInAlgorithm(BOOL enable)
 {
     if(platformHasMag()){
@@ -140,6 +150,11 @@ void enableMagInAlgorithm(BOOL enable)
 BOOL magUsedInAlgorithm()
 {
     return gAlgorithm.Behavior.bit.useMag != 0;
+}
+
+void enableGpsInAlgorithm(BOOL enable)
+{
+    gAlgorithm.Behavior.bit.useGPS = enable;
 }
 
 BOOL gpsUsedInAlgorithm(void)
@@ -311,6 +326,11 @@ void EKF_GetOperationalSwitches(uint8_t *EKF_LinAccelSwitch, uint8_t *EKF_TurnSw
     *EKF_TurnSwitch     = gEKFOutputData.turnSwitchFlag;
 }
 
+// Extract the flag that says whether the heading source was GPS course or not
+void EKF_GetCourseUsedAsHeading(uint8_t* EKF_CourseUsedAsHeading)
+{
+    *EKF_CourseUsedAsHeading = gEKFOutputData.usedCourseAsHeading;
+}
 
 // SETTERS: for EKF input and output structures
 
@@ -435,6 +455,7 @@ void EKF_SetOutputStruct(void)
     gEKFOutputData.opMode         = gAlgorithm.state;
     gEKFOutputData.linAccelSwitch = gAlgorithm.linAccelSwitch;
     gEKFOutputData.turnSwitchFlag = gBitStatus.swStatus.bit.turnSwitch;
+    gEKFOutputData.usedCourseAsHeading = gBitStatus.swStatus.bit.useCourseHeading;
 
     // ------------------ Latitude and Longitude Data ------------------
     gEKFOutputData.llaDeg[LAT] = gKalmanFilter.llaDeg[LAT];
