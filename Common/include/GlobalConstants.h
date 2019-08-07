@@ -44,6 +44,7 @@ typedef int BOOL;
 
 // Constants
 #define  RAD_TO_DEG     57.29577951308232
+#define  RAD_TO_DEG_SQUARE     3282.806350011744
 #define  DEG_TO_RAD     0.017453292519943
 #define D2R        ( 0.017453292519943 ) ///< ( PI/180.0 ) = 0.017453292519943
 #define R2D         57.29577951308232
@@ -63,6 +64,7 @@ typedef int BOOL;
 // The following is the acceleration due to gravity at the calibration location
 #define  GRAVITY            9.80665
 #define  ACCEL_DUE_TO_GRAV  9.794259
+#define  ACCEL_DUE_TO_GRAV_SQUARE  95.927509359081
 #define  g_TO_M_SEC_SQ  9.80655
 
 // PI and related values
