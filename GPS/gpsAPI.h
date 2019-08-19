@@ -101,6 +101,31 @@ extern gpsDataStruct_t gGPS;
  * @retval N/A
  ******************************************************************************/
 void  GetGPSData(gpsDataStruct_t *data);
+
+/** Return the number of bytes received on the GPS UART
+ */
+uint32_t GetGPSRXCounter();
+
+/** Return the number of times the GPS UART handler overflown
+ */
+uint16_t GetGPSOverflowCounter();
+
+/** Return the time of last received GPS message
+ * 
+ * This is set regardless of whether the solution is valid
+ * 
+ * Returns zero if no message was ever received
+ */
+uint32_t GetLastReceivedGPS();
+
+/** Return the time of last received GPS message
+ * 
+ * This is set regardless of whether the solution is valid
+ * 
+ * Returns zero if no message was ever received
+ */
+uint32_t GetLastReceivedGPS();
+
 BOOL  SetGpsBaudRate(int rate, int fApply);
 BOOL  SetGpsProtocol(int protocol, int fApply);
 

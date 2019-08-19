@@ -162,6 +162,7 @@ BOOL _handleGpsMessages(GpsData_t *GPSData)
             if(!bytesInBuffer){
                 return 0; // nothing to do
             }
+            GPSData->rxCounter += bytesInBuffer;
             pos = 0; 
         }
         tmp = gpsUartBuf[pos++];

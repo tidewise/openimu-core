@@ -236,6 +236,21 @@ int writeGps(char  *data, uint16_t len)
 
 }
 
+uint16_t GetGPSOverflowCounter()
+{
+    return gGpsDataPtr->overflowCounter;
+}
+
+uint32_t GetGPSRXCounter()
+{
+    return gGpsDataPtr->rxCounter;
+}
+
+uint32_t GetLastReceivedGPS()
+{
+    return gGpsDataPtr->itow;
+}
+
 void GetGPSData(gpsDataStruct_t *data)
 {
     data->gpsValid          = gGpsDataPtr->gpsValid;
