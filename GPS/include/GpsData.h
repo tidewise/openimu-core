@@ -58,7 +58,7 @@ typedef struct  {
     int                  totalVTG;
 
     double               trueCourse; // [deg]
-    double               rawGroundSpeed; // NMEA kph, SiRf m/s
+    double               rawGroundSpeed; // m/s
 
     double               alt;          // above mean sea level [m]
     double               filteredAlt; // FIXME should this be local?
