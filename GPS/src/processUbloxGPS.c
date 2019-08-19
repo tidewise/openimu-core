@@ -114,11 +114,11 @@ unsigned char   processedIDcounter = 0;
 
 //void pollUbloxMsg(ubloxIDTypeSTRUCT *IDInput, GpsData_t *GPSData);
 void _computeUbloxCheckSumCrc(char         *msg,
-                              unsigned int *msgLength,
+                              unsigned int msgLength,
                               unsigned int *cCKA,
                               unsigned int *cCKB);
 void _decodeVersionMsg(char          *msg,
-                       unsigned int  *msgLength,
+                       unsigned int  msgLength,
                        GpsData_t *GPSData);
 unsigned char _sendAcknowlegdeProcess(ubloxIDTypeSTRUCT *cfgID,
                                       GpsData_t     *GPSData,
@@ -207,7 +207,7 @@ void ubloxGPSMsgSender(ubloxIDTypeSTRUCT *msgID,
         ubloxMsg[j++] = MsgPayLoad[i];
 	msgLength = j + 2;  ///include 2 bytes crc
 	_computeUbloxCheckSumCrc(ubloxMsg,
-                             &msgLength,
+                             msgLength,
                              &CK_A_C,
                              &CK_B_C);
 
@@ -227,7 +227,7 @@ void ubloxGPSMsgSender(ubloxIDTypeSTRUCT *msgID,
  * @retval N/A
  ******************************************************************************/
 void processUbloxBinaryMessage(char          *msg,
-                               unsigned int  *msgLength,
+                               unsigned int  msgLength,
                                GpsData_t     *GPSData)
 {
 	unsigned int         checksumACalcu;
@@ -249,8 +249,8 @@ void processUbloxBinaryMessage(char          *msg,
         IDCounter2=0;
 
 	///checksum
-	checksumARec = msg[*msgLength - 2];
-	checksumBRec = msg[*msgLength - 1];
+	checksumARec = msg[msgLength - 2];
+	checksumBRec = msg[msgLength - 1];
     _computeUbloxCheckSumCrc(msg,
                              msgLength,
                              &checksumACalcu,
@@ -421,7 +421,7 @@ void processUbloxBinaryMessage(char          *msg,
  * @retval N/A
  ******************************************************************************/
 void _computeUbloxCheckSumCrc(char         *msg,
-                              unsigned int *msgLength,
+                              unsigned int msgLength,
                               unsigned int *cCKA,
                               unsigned int *cCKB)
 {
@@ -430,7 +430,7 @@ void _computeUbloxCheckSumCrc(char         *msg,
 	unsigned int checksumACalcu = 0;
     unsigned int checksumBCalcu = 0;
 
-	CKRange = *msgLength - 4;  ///exclude header and crc itself
+	CKRange = msgLength - 4;  ///exclude header and crc itself
 	for (i = 0; i < CKRange; i++)		{
 		checksumACalcu = checksumACalcu + (msg[i+2] & 0xFF);
 		checksumACalcu = checksumACalcu& 0xFF;
@@ -1248,8 +1248,8 @@ unsigned char  getConnectedWithUnknownStatusUbloxGPS(GpsData_t* GPSData)
  * @retval N/A
  ******************************************************************************/
 void _decodeVersionMsg(char          *msg,
-                      unsigned int  *msgLength,
                       GpsData_t	*GPSData)
+                       unsigned int  msgLength,
 {
 	char tmpBuff[10];
 	int  i;
