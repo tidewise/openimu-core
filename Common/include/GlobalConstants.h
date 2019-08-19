@@ -135,6 +135,7 @@ typedef enum{
     DEFAULT_SEARCH_PROTOCOL =  NMEA_TEXT, // 3
 	SIRF_BINARY             =  4,
 	INIT_SEARCH_PROTOCOL    =  SIRF_BINARY, ///< 4 max value, goes through each until we hit AUTODETECT
+	UBLOX_PVT               =  5,
 	UNKNOWN                 = 0xFF
 } enumGPSProtocol;
 

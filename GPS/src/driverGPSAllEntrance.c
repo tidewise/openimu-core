@@ -101,6 +101,7 @@ BOOL  SetGpsProtocol(int protocol, int fApply)
     switch(protocol){
         case NMEA_TEXT:
         case NOVATEL_BINARY:
+        case UBLOX_PVT:
             break;
         default:
             return FALSE;
@@ -154,7 +155,6 @@ BOOL _handleGpsMessages(GpsData_t *GPSData)
     static int bytesInBuffer = 0;
     unsigned char tmp;
 	unsigned static int  pos = 0;
-	
     
 	while(1){
         if(!bytesInBuffer){
@@ -173,11 +173,14 @@ BOOL _handleGpsMessages(GpsData_t *GPSData)
                 break; 
             case NOVATEL_BINARY:
                 parseNovotelBinaryMessage(tmp, gpsMsg, GPSData);
-                        break;
-                    default:
-                        break;
-                }
+                break;
+            case UBLOX_PVT:
+                parseUbloxPVTMessage(tmp, gpsMsg, GPSData);
+                break;
+            default:
+                break;
         }
+    }
 }
 /* end _handleGpsMessages */
 
