@@ -188,7 +188,7 @@ void GPSHandler(void);
 
 /// ublox binary processUbloxGPS.cpp
 void configUbloxGPSReceiver(int *bytesFromBuffer, GpsData_t* GPSData);
-void processUbloxBinaryMessage(char *msg,unsigned int *msgLength, GpsData_t	*GPSData);
+void processUbloxBinaryMessage(uint8_t *msg, unsigned int msgLength, GpsData_t	*GPSData);
 unsigned char configurateUBloxGPSPerformance (GpsData_t* GPSData);
 unsigned char configurateUBloxGPSIOMsgRate (GpsData_t* GPSData);
 unsigned char getConnectedWithUnknownStatusUbloxGPS(GpsData_t* GPSData);
@@ -224,7 +224,7 @@ void     initOnePpsUart( void );
 //uint16_t peekWordGpsBuf(uint16_t index);
 //uint8_t  peekByteGpsBuf(uint16_t index);
 //unsigned long peekGPSmsgHeader(uint16_t index, GpsData_t *GPSData);
-int      writeGps(char     *send, uint16_t len);
+int      writeGps(uint8_t     *send, uint16_t len);
 //int16_t  findHeader(uint16_t numInBuff, GpsData_t *GPSData);
 //int16_t  retrieveGpsMsg(uint16_t numBytes, GpsData_t *GPSData, uint8_t *outBuffer);
 //unsigned char autobaud(GpsData_t* GPSData);

@@ -230,7 +230,7 @@ int16_t findHeader(uint16_t      numInBuff,
  * @details gConfiguration.userBehavior.bit.useGPS (use USART) determines
  *          which pipeline to send command through
  ******************************************************************************/
-int writeGps(char  *data, uint16_t len)
+int writeGps(uint8_t  *data, uint16_t len)
 {
     return uart_write(gpsSerialChan, (uint8_t*)data, len);
 

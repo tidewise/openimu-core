@@ -113,11 +113,11 @@ unsigned char   processedIDcounter = 0;
 //unsigned char configurate_uBloxGPS (GpsData_t* GPSData);
 
 //void pollUbloxMsg(ubloxIDTypeSTRUCT *IDInput, GpsData_t *GPSData);
-void _computeUbloxCheckSumCrc(char         *msg,
+void _computeUbloxCheckSumCrc(uint8_t      *msg,
                               unsigned int msgLength,
                               unsigned int *cCKA,
                               unsigned int *cCKB);
-void _decodeVersionMsg(char          *msg,
+void _decodeVersionMsg(uint8_t       *msg,
                        unsigned int  msgLength,
                        GpsData_t *GPSData);
 unsigned char _sendAcknowlegdeProcess(ubloxIDTypeSTRUCT *cfgID,
@@ -184,7 +184,7 @@ void ubloxGPSMsgSender(ubloxIDTypeSTRUCT *msgID,
                        int               *msgPayLoadLength,
                        GpsData_t         *GPSData)
 {
-	char                ubloxMsg[MAX_UBLOX_BODY_LENGTH+8];
+	uint8_t             ubloxMsg[MAX_UBLOX_BODY_LENGTH+8];
 	int                 i;
 	static unsigned int j; ///need static for optimizer.
 						   ///Otherwise, it could be not incremented at the end
@@ -226,7 +226,7 @@ void ubloxGPSMsgSender(ubloxIDTypeSTRUCT *msgID,
  * @param [in] GPSData structure to parse into
  * @retval N/A
  ******************************************************************************/
-void processUbloxBinaryMessage(char          *msg,
+void processUbloxBinaryMessage(uint8_t       *msg,
                                unsigned int  msgLength,
                                GpsData_t     *GPSData)
 {
@@ -420,7 +420,7 @@ void processUbloxBinaryMessage(char          *msg,
  * @param [out] cCKB - checksum B
  * @retval N/A
  ******************************************************************************/
-void _computeUbloxCheckSumCrc(char         *msg,
+void _computeUbloxCheckSumCrc(uint8_t      *msg,
                               unsigned int msgLength,
                               unsigned int *cCKA,
                               unsigned int *cCKB)
@@ -1247,9 +1247,9 @@ unsigned char  getConnectedWithUnknownStatusUbloxGPS(GpsData_t* GPSData)
  * @param [in] GPSData - GPS data structure to pull message from
  * @retval N/A
  ******************************************************************************/
-void _decodeVersionMsg(char          *msg,
-                      GpsData_t	*GPSData)
+void _decodeVersionMsg(uint8_t         *msg,
                        unsigned int  msgLength,
+                       GpsData_t	*GPSData)
 {
 	char tmpBuff[10];
 	int  i;
