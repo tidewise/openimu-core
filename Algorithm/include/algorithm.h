@@ -88,7 +88,8 @@ struct algoBehavior_BITS  {        /// bits   description
    uint16_t stationaryLockYaw : 1; /// 3 - Not used yet
    uint16_t restartOnOverRange: 1; /// 4
    uint16_t dynamicMotion     : 1; /// 5 - Not used
-   uint16_t rsvd              :10; /// 6:15
+   uint16_t useCourseHeading  : 1; /// 6 - GPS-provided course may be used instead of heading
+   uint16_t rsvd              : 9; /// 7:15
 };
 
 union AlgoBehavior

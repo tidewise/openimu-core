@@ -58,7 +58,7 @@ typedef struct  {
     int                  totalVTG;
 
     double               trueCourse; // [deg]
-    double               rawGroundSpeed; // NMEA kph, SiRf m/s
+    double               rawGroundSpeed; // m/s
 
     double               alt;          // above mean sea level [m]
     double               filteredAlt; // FIXME should this be local?
@@ -98,6 +98,9 @@ typedef struct  {
     unsigned long        firewallCounter;
     unsigned long        firewallRunCounter;
     unsigned long        reconfigGPSCounter;
+
+    unsigned long        rxCounter;
+    unsigned short       overflowCounter;
 
     /// GPS Baudrate and protocal: -1, 0,1, 2, 3 corresponding to
     int                  GPSbaudRate;    /// 4800, 9600, 19200, 38400, 57600, 115200, etc

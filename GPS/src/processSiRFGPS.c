@@ -143,7 +143,7 @@ void _sirfSwitchToBinary(uint32_t realBaudRate)
 
     strcpy(&(msg[msgIndex]), "\r\n");
     msgIndex += 2;
-    writeGps(msg, msgIndex);
+    writeGps((uint8_t*)msg, msgIndex);
 }
 
 /** ****************************************************************************
@@ -196,25 +196,25 @@ static void _SiRFSendMessage(uint8_t *msg,
     uint16_t tmp;
 
     tmp = byteSwap16(SIRF_BINARY_HEADER);
-    writeGps((char*)&tmp,
+    writeGps((uint8_t*)&tmp,
               sizeof(tmp));
 
     tmp = byteSwap16(messageLength);
-    writeGps((char*)&tmp,
+    writeGps((uint8_t*)&tmp,
              sizeof(tmp));
 
-    writeGps((char*)msg,
+    writeGps(msg,
              messageLength);
 
     tmp = _computeSirfChecksum((uint8_t*)msg,
                                messageLength);
     tmp = byteSwap16(tmp);
-    writeGps((char*)&tmp,
+    writeGps((uint8_t*)&tmp,
              sizeof(tmp));
 
     tmp = SIRF_END_SEQUENCE;
     tmp = byteSwap16(tmp);
-    writeGps((char*)&tmp,
+    writeGps((uint8_t*)&tmp,
              sizeof(tmp));
 }
 

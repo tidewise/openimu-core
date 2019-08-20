@@ -97,10 +97,15 @@ extern EKF_InputDataStruct gEKFInputData;
 typedef struct {
     // Algorithm states (15 states)
     double            position_N[NUM_AXIS];
+    double            position_Cov_N[NUM_AXIS];
     double            velocity_N[NUM_AXIS];
+    double            velocity_Cov_N[NUM_AXIS];
     double            quaternion_BinN[4];
+    double            quaternion_Cov_BinN[4];
     double            angRateBias_B[NUM_AXIS];
+    double            angRateBias_Cov_B[NUM_AXIS];
     double            accelBias_B[NUM_AXIS];
+    double            accelBias_Cov_B[NUM_AXIS];
     
     double            llaDeg[NUM_AXIS];
 
@@ -113,6 +118,7 @@ typedef struct {
     uint8_t           opMode;
     uint8_t           turnSwitchFlag;
     uint8_t           linAccelSwitch;
+    uint8_t           usedCourseAsHeading;
 } EKF_OutputDataStruct;
 
 extern EKF_OutputDataStruct gEKFOutputData;
@@ -123,16 +129,22 @@ void enableFreeIntegration(BOOL enable);
 // Getters for data extraction from the EKF output data structure
 void EKF_GetAttitude_EA(real *EulerAngles);
 void EKF_GetAttitude_Q(real *Quaternions);
+void EKF_GetAttitude_Q_Covariance(real *Quaternions);
 void EKF_GetCorrectedAngRates(real *CorrAngRates_B);
+void EKF_GetCorrectedAngRatesCovariance(real *CorrAccels_Cov_B);
 void EKF_GetCorrectedAccels(real *CorrAccels_B);
+void EKF_GetCorrectedAccelsCovariance(real *CorrAccels_Cov_B);
 void EKF_GetEstimatedAngRateBias(real *AngRateBias_B);
 void EKF_GetEstimatedAccelBias(real *AccelBias_B);
 void EKF_GetEstimatedPosition(real *Position_N);
+void EKF_GetEstimatedPositionCovariance(real *Position_Cov_N);
 void EKF_GetEstimatedVelocity(real *Velocity_N);
+void EKF_GetEstimatedVelocityCovariance(real *Velocity_Cov_N);
 void EKF_GetEstimatedLLA(double *LLA);
 
 void EKF_GetOperationalMode(uint8_t *EKF_OperMode);
 void EKF_GetOperationalSwitches(uint8_t *EKF_LinAccelSwitch, uint8_t *EKF_TurnSwitch);
+void EKF_GetCourseUsedAsHeading(uint8_t* EKF_CourseUsedAsHeading);
 
 // Setter functions
 void EKF_SetInputStruct(double *accels, double *rates, double *mags, gpsDataStruct_t *gps);

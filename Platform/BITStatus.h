@@ -192,7 +192,8 @@ struct SW_STATUS_BITS {                 // bits
     uint16_t noAirdataAiding       : 1; // 4  airdata aiding
     uint16_t noMagnetometerheading : 1; // 5  magnetometer heading
     uint16_t noGPSTrackReference   : 1; // 6  GPS track
-    uint16_t rsvd                  : 9; // 7:15
+    uint16_t useCourseHeading      : 1; // 7  GPS-provided course is used in place of heading
+    uint16_t rsvd                  : 8; // 6:15
 };
 
 union SW_STATUS {

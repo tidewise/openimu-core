@@ -541,7 +541,7 @@ void sendNovAtelBinaryCmdMsg(void)
 	uint8_t posBCmd[] = { "log com1 BESTPOSB ontime 1\r" };
 	uint8_t velBCmd[] = { "log com1 BESTVELB ontime 1\r" };
 
-	writeGps((char*)posBCmd, strlen((char*)posBCmd));
-	writeGps((char*)velBCmd, strlen((char*)velBCmd));
-	writeGps((char*)baudCmd, strlen((char*)baudCmd));
+	writeGps(posBCmd, strlen((char*)posBCmd));
+	writeGps(velBCmd, strlen((char*)velBCmd));
+	writeGps(baudCmd, strlen((char*)baudCmd));
 }

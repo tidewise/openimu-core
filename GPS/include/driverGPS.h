@@ -76,6 +76,7 @@ limitations under the License.
 #define MAX_GPS_VELOCITY_ACCURACY   3.0 ///< m/s
 
 /// ublox message ID
+#define UBLOX_NAV_PVT       0x0107
 #define UBLOX_NAV_POSLLH    0x0102
 #define UBLOX_NAV_STATUS    0x0103
 #define UBLOX_NAV_VELNED    0x0112
@@ -187,7 +188,7 @@ void GPSHandler(void);
 
 /// ublox binary processUbloxGPS.cpp
 void configUbloxGPSReceiver(int *bytesFromBuffer, GpsData_t* GPSData);
-void processUbloxBinaryMessage(char *msg,unsigned int *msgLength, GpsData_t	*GPSData);
+void processUbloxBinaryMessage(uint8_t *msg, unsigned int msgLength, GpsData_t	*GPSData);
 unsigned char configurateUBloxGPSPerformance (GpsData_t* GPSData);
 unsigned char configurateUBloxGPSIOMsgRate (GpsData_t* GPSData);
 unsigned char getConnectedWithUnknownStatusUbloxGPS(GpsData_t* GPSData);
@@ -223,13 +224,14 @@ void     initOnePpsUart( void );
 //uint16_t peekWordGpsBuf(uint16_t index);
 //uint8_t  peekByteGpsBuf(uint16_t index);
 //unsigned long peekGPSmsgHeader(uint16_t index, GpsData_t *GPSData);
-int      writeGps(char     *send, uint16_t len);
+int      writeGps(uint8_t     *send, uint16_t len);
 //int16_t  findHeader(uint16_t numInBuff, GpsData_t *GPSData);
 //int16_t  retrieveGpsMsg(uint16_t numBytes, GpsData_t *GPSData, uint8_t *outBuffer);
 //unsigned char autobaud(GpsData_t* GPSData);
 BOOL HandleGps(GpsData_t *GPSData);
 int parseNMEAMessage(uint8_t inByte, uint8_t *gpsMsg, GpsData_t *GPSData);
 int parseNovotelBinaryMessage(uint8_t inByte, uint8_t *gpsMsg, GpsData_t *GPSData);
+int parseUbloxPVTMessage(uint8_t inByte, uint8_t *gpsMsg, GpsData_t *GPSData);
 
 
 

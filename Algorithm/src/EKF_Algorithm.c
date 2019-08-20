@@ -128,6 +128,16 @@ BOOL freeIntegrationEnabled()
     return gAlgorithm.Behavior.bit.freeIntegrate;
 }   
 
+void enableCourseAsHeadingInAlgorithm(BOOL enable)
+{
+    gAlgorithm.Behavior.bit.useCourseHeading = enable;
+}
+
+BOOL courseUsedAsHeadingInAlgorithm()
+{
+    return gAlgorithm.Behavior.bit.useCourseHeading != 0;
+}
+
 void enableMagInAlgorithm(BOOL enable)
 {
     if(platformHasMag()){
@@ -140,6 +150,11 @@ void enableMagInAlgorithm(BOOL enable)
 BOOL magUsedInAlgorithm()
 {
     return gAlgorithm.Behavior.bit.useMag != 0;
+}
+
+void enableGpsInAlgorithm(BOOL enable)
+{
+    gAlgorithm.Behavior.bit.useGPS = enable;
 }
 
 BOOL gpsUsedInAlgorithm(void)
@@ -177,6 +192,14 @@ void EKF_GetAttitude_Q(real *Quaternions)
     Quaternions[Q3] = (real)gEKFOutputData.quaternion_BinN[Q3];
 }
 
+void EKF_GetAttitude_Q_Covariance(real *Quaternions_Cov)
+{
+    Quaternions_Cov[Q0] = (real)gEKFOutputData.quaternion_Cov_BinN[Q0];
+    Quaternions_Cov[Q1] = (real)gEKFOutputData.quaternion_Cov_BinN[Q1];
+    Quaternions_Cov[Q2] = (real)gEKFOutputData.quaternion_Cov_BinN[Q2];
+    Quaternions_Cov[Q3] = (real)gEKFOutputData.quaternion_Cov_BinN[Q3];
+}
+
 
 // Extract the angular-rate of the body (corrected for estimated rate-bias)
 //   measured in the body-frame (B)
@@ -188,6 +211,15 @@ void EKF_GetCorrectedAngRates(real *CorrAngRates_B)
     CorrAngRates_B[Z_AXIS] = (real)gEKFOutputData.corrAngRates_B[Z_AXIS];
 }
 
+// Extract the angular-rate covariances
+void EKF_GetCorrectedAngRatesCovariance(real *CorrAngRates_Cov_B)
+{
+    // Covariances in [(deg/s)^2]
+    CorrAngRates_Cov_B[X_AXIS] = (real)gEKFOutputData.angRateBias_Cov_B[X_AXIS];
+    CorrAngRates_Cov_B[Y_AXIS] = (real)gEKFOutputData.angRateBias_Cov_B[Y_AXIS];
+    CorrAngRates_Cov_B[Z_AXIS] = (real)gEKFOutputData.angRateBias_Cov_B[Z_AXIS];
+}
+
 
 // Extract the acceleration of the body (corrected for estimated
 //   accelerometer-bias) measured in the body-frame (B)
@@ -197,6 +229,13 @@ void EKF_GetCorrectedAccels(real *CorrAccels_B)
     CorrAccels_B[X_AXIS] = (real)gEKFOutputData.corrAccel_B[X_AXIS];
     CorrAccels_B[Y_AXIS] = (real)gEKFOutputData.corrAccel_B[Y_AXIS];
     CorrAccels_B[Z_AXIS] = (real)gEKFOutputData.corrAccel_B[Z_AXIS];
+}
+
+void EKF_GetCorrectedAccelsCovariance(real *CorrAccels_Cov_B)
+{
+    CorrAccels_Cov_B[X_AXIS] = (real)gEKFOutputData.accelBias_Cov_B[X_AXIS];
+    CorrAccels_Cov_B[Y_AXIS] = (real)gEKFOutputData.accelBias_Cov_B[Y_AXIS];
+    CorrAccels_Cov_B[Z_AXIS] = (real)gEKFOutputData.accelBias_Cov_B[Z_AXIS];
 }
 
 
@@ -231,6 +270,14 @@ void EKF_GetEstimatedPosition(real *Position_N)
     Position_N[Z_AXIS] = (real)gEKFOutputData.position_N[Z_AXIS];
 }
 
+void EKF_GetEstimatedPositionCovariance(real *Position_Cov_N)
+{
+    // Position in [m]
+    Position_Cov_N[X_AXIS] = (real)gEKFOutputData.position_Cov_N[X_AXIS];
+    Position_Cov_N[Y_AXIS] = (real)gEKFOutputData.position_Cov_N[Y_AXIS];
+    Position_Cov_N[Z_AXIS] = (real)gEKFOutputData.position_Cov_N[Z_AXIS];
+}
+
 
 // Extract the Position of the body measured in the NED-frame (N)
 void EKF_GetEstimatedVelocity(real *Velocity_N)
@@ -239,6 +286,14 @@ void EKF_GetEstimatedVelocity(real *Velocity_N)
     Velocity_N[X_AXIS] = (real)gEKFOutputData.velocity_N[X_AXIS];
     Velocity_N[Y_AXIS] = (real)gEKFOutputData.velocity_N[Y_AXIS];
     Velocity_N[Z_AXIS] = (real)gEKFOutputData.velocity_N[Z_AXIS];
+}
+
+void EKF_GetEstimatedVelocityCovariance(real *Velocity_Cov_N)
+{
+    // Velocity in [m/s]
+    Velocity_Cov_N[X_AXIS] = (real)gEKFOutputData.velocity_Cov_N[X_AXIS];
+    Velocity_Cov_N[Y_AXIS] = (real)gEKFOutputData.velocity_Cov_N[Y_AXIS];
+    Velocity_Cov_N[Z_AXIS] = (real)gEKFOutputData.velocity_Cov_N[Z_AXIS];
 }
 
 
@@ -271,6 +326,11 @@ void EKF_GetOperationalSwitches(uint8_t *EKF_LinAccelSwitch, uint8_t *EKF_TurnSw
     *EKF_TurnSwitch     = gEKFOutputData.turnSwitchFlag;
 }
 
+// Extract the flag that says whether the heading source was GPS course or not
+void EKF_GetCourseUsedAsHeading(uint8_t* EKF_CourseUsedAsHeading)
+{
+    *EKF_CourseUsedAsHeading = gEKFOutputData.usedCourseAsHeading;
+}
 
 // SETTERS: for EKF input and output structures
 
@@ -330,27 +390,43 @@ void EKF_SetOutputStruct(void)
     gEKFOutputData.position_N[X_AXIS] = gKalmanFilter.Position_N[X_AXIS];
     gEKFOutputData.position_N[Y_AXIS] = gKalmanFilter.Position_N[Y_AXIS];
     gEKFOutputData.position_N[Z_AXIS] = gKalmanFilter.Position_N[Z_AXIS];
+    gEKFOutputData.position_Cov_N[X_AXIS] = gKalmanFilter.P[STATE_RX][STATE_RX];
+    gEKFOutputData.position_Cov_N[Y_AXIS] = gKalmanFilter.P[STATE_RY][STATE_RY];
+    gEKFOutputData.position_Cov_N[Z_AXIS] = gKalmanFilter.P[STATE_RZ][STATE_RZ];
 
     // Velocity in [m/s]
     gEKFOutputData.velocity_N[X_AXIS] = gKalmanFilter.Velocity_N[X_AXIS];
     gEKFOutputData.velocity_N[Y_AXIS] = gKalmanFilter.Velocity_N[Y_AXIS];
     gEKFOutputData.velocity_N[Z_AXIS] = gKalmanFilter.Velocity_N[Z_AXIS];
+    gEKFOutputData.velocity_Cov_N[X_AXIS] = gKalmanFilter.P[STATE_VX][STATE_VX];
+    gEKFOutputData.velocity_Cov_N[Y_AXIS] = gKalmanFilter.P[STATE_VY][STATE_VY];
+    gEKFOutputData.velocity_Cov_N[Z_AXIS] = gKalmanFilter.P[STATE_VZ][STATE_VZ];
 
     // Position in [N/A]
     gEKFOutputData.quaternion_BinN[Q0] = gKalmanFilter.quaternion[Q0];
     gEKFOutputData.quaternion_BinN[Q1] = gKalmanFilter.quaternion[Q1];
     gEKFOutputData.quaternion_BinN[Q2] = gKalmanFilter.quaternion[Q2];
     gEKFOutputData.quaternion_BinN[Q3] = gKalmanFilter.quaternion[Q3];
+    gEKFOutputData.quaternion_Cov_BinN[Q0] = gKalmanFilter.P[STATE_Q0][STATE_Q0];
+    gEKFOutputData.quaternion_Cov_BinN[Q1] = gKalmanFilter.P[STATE_Q1][STATE_Q1];
+    gEKFOutputData.quaternion_Cov_BinN[Q2] = gKalmanFilter.P[STATE_Q2][STATE_Q2];
+    gEKFOutputData.quaternion_Cov_BinN[Q3] = gKalmanFilter.P[STATE_Q3][STATE_Q3];
 
     // Angular-rate bias in [deg/sec]
     gEKFOutputData.angRateBias_B[X_AXIS] = gKalmanFilter.rateBias_B[X_AXIS] * RAD_TO_DEG;
     gEKFOutputData.angRateBias_B[Y_AXIS] = gKalmanFilter.rateBias_B[Y_AXIS] * RAD_TO_DEG;
     gEKFOutputData.angRateBias_B[Z_AXIS] = gKalmanFilter.rateBias_B[Z_AXIS] * RAD_TO_DEG;
+    gEKFOutputData.angRateBias_Cov_B[X_AXIS] = gKalmanFilter.P[STATE_WBX][STATE_WBX] * RAD_TO_DEG_SQUARE;
+    gEKFOutputData.angRateBias_Cov_B[Y_AXIS] = gKalmanFilter.P[STATE_WBY][STATE_WBY] * RAD_TO_DEG_SQUARE;
+    gEKFOutputData.angRateBias_Cov_B[Z_AXIS] = gKalmanFilter.P[STATE_WBZ][STATE_WBZ] * RAD_TO_DEG_SQUARE;
 
     // Acceleration-bias in [m/s^2]
     gEKFOutputData.accelBias_B[X_AXIS] = gKalmanFilter.accelBias_B[X_AXIS] * ACCEL_DUE_TO_GRAV;
     gEKFOutputData.accelBias_B[Y_AXIS] = gKalmanFilter.accelBias_B[Y_AXIS] * ACCEL_DUE_TO_GRAV;
     gEKFOutputData.accelBias_B[Z_AXIS] = gKalmanFilter.accelBias_B[Z_AXIS] * ACCEL_DUE_TO_GRAV;
+    gEKFOutputData.accelBias_Cov_B[X_AXIS] = gKalmanFilter.P[STATE_ABX][STATE_ABX] * ACCEL_DUE_TO_GRAV_SQUARE;
+    gEKFOutputData.accelBias_Cov_B[Y_AXIS] = gKalmanFilter.P[STATE_ABY][STATE_ABY] * ACCEL_DUE_TO_GRAV_SQUARE;
+    gEKFOutputData.accelBias_Cov_B[Z_AXIS] = gKalmanFilter.P[STATE_ABZ][STATE_ABZ] * ACCEL_DUE_TO_GRAV_SQUARE;
 
     // ------------------ Derived variables ------------------
 
@@ -379,6 +455,7 @@ void EKF_SetOutputStruct(void)
     gEKFOutputData.opMode         = gAlgorithm.state;
     gEKFOutputData.linAccelSwitch = gAlgorithm.linAccelSwitch;
     gEKFOutputData.turnSwitchFlag = gBitStatus.swStatus.bit.turnSwitch;
+    gEKFOutputData.usedCourseAsHeading = gBitStatus.swStatus.bit.useCourseHeading;
 
     // ------------------ Latitude and Longitude Data ------------------
     gEKFOutputData.llaDeg[LAT] = gKalmanFilter.llaDeg[LAT];
