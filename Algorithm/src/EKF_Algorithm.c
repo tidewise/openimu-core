@@ -377,7 +377,8 @@ void EKF_SetInputStruct(double *accels, double *rates, double *mags, gpsDataStru
     // Data quality measures
     gEKFInputData.GPSHorizAcc = gps->GPSHorizAcc;
     gEKFInputData.GPSVertAcc  = gps->GPSVertAcc;
-    gEKFInputData.HDOP        = gps->HDOP;
+    gEKFInputData.GPSHVelAcc   = gps->GPSHVelAcc;
+    gEKFInputData.GPSVVelAcc   = gps->GPSVVelAcc;
 }
 
 

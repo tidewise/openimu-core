@@ -280,7 +280,8 @@ void GetGPSData(gpsDataStruct_t *data)
     data->GPSMinute         = gGpsDataPtr->GPSMinute; 
     data->GPSSecond         = gGpsDataPtr->GPSSecond; 
 
-    data->HDOP              = gGpsDataPtr->HDOP;
+    data->GPSHVelAcc         = gGpsDataPtr->GPSHVelAcc;
+    data->GPSVVelAcc         = gGpsDataPtr->GPSVVelAcc;
     data->GPSHorizAcc       = gGpsDataPtr->GPSHorizAcc;
     data->GPSVertAcc        = gGpsDataPtr->GPSVertAcc;
 }
@@ -357,4 +358,17 @@ void thresholdSmoother( double         vNedIn[3],
         vNedOut[1] = (float)vNedIn[1];
         vNedOut[2] = (float)vNedIn[2];
     }
+}
+
+/******************************************************************************
+ * @name: compute an estimate of the horizontal velocity based on the HDOP
+ *        use this to simulate horizontal velocity estimated for GPSes that
+ *        don't report it directly
+ *
+ * @param [in]  HDOP
+ * @retval horizontal velocity estimate
+ ******************************************************************************/
+void GPSEstimateVelAcc(GpsData_t* gpsData) {
+    gpsData->GPSHVelAcc = (real)0.0625 * gpsData->HDOP;
+    gpsData->GPSVVelAcc = 0.1;
 }

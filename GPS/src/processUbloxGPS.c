@@ -296,7 +296,8 @@ void processUbloxBinaryMessage(uint8_t       *msg,
             GPSData->vNed[1]   = NAV_VELNED_PAYLOAD_UNION.myData.Vel_NED[1] * 1e-2;
             GPSData->vNed[2]   = NAV_VELNED_PAYLOAD_UNION.myData.Vel_NED[2] * 1e-2;
             GPSData->itow      = NAV_VELNED_PAYLOAD_UNION.myData.itow;
-            GPSData->GPSVelAcc = NAV_VELNED_PAYLOAD_UNION.myData.SAcc * 1e-2; ///changed to m/s
+            GPSData->GPSHVelAcc = NAV_VELNED_PAYLOAD_UNION.myData.SAcc * 1e-2; ///changed to m/s
+            GPSData->GPSVVelAcc = 0.1;
 
             GPSData->updateFlagForEachCall |= 1 << GOT_UBLOX_VNED;
             GPSData->VELCounter++;

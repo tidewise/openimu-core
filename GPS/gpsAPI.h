@@ -88,8 +88,7 @@ typedef struct  {
     uint8_t              hgtQ;
     uint8_t              useSigmas;
 
-    float                GPSHorizAcc, GPSVertAcc;
-    float                HDOP;
+    float                GPSHorizAcc, GPSVertAcc, GPSHVelAcc, GPSVVelAcc;
 } gpsDataStruct_t;
 
 extern gpsDataStruct_t gGPS;

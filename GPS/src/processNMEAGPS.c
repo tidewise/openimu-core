@@ -540,6 +540,7 @@ void convertNorhEastVelocity(GpsData_t* GPSData)
 						sin(D2R * GPSData->trueCourse);
 
 	_smoothVerticalData(GPSData); // synthesize and filter down velocity
+    GPSEstimateVelAcc(GPSData);
 }
 
 /** ****************************************************************************

@@ -713,14 +713,13 @@ void _GenerateObservationCovariance_INS(void)
     // Scale the best velocity error by HDOP then multiply by the z-axis angular
     //   rate PLUS one (to prevent the number from being zero) so the velocity
     //   update during high-rate turns is reduced.
-    float temp = (real)0.0625 * gEKFInputData.HDOP;  // 0.0625 = 0.05 / 0.8
-    gKalmanFilter.R[STATE_VX][STATE_VX] = temp * ((real)1.0 + fabs(gAlgorithm.filteredYawRate) * (real)RAD_TO_DEG );
-    gKalmanFilter.R[STATE_VX][STATE_VX] = gKalmanFilter.R[STATE_VX][STATE_VX] * gKalmanFilter.R[STATE_VX][STATE_VX];
+    float stddev_vx = gEKFInputData.GPSHVelAcc * ((real)1.0 + fabs(gAlgorithm.filteredYawRate) * (real)RAD_TO_DEG);
+    gKalmanFilter.R[STATE_VX][STATE_VX] = stddev_vx * stddev_vx;
     gKalmanFilter.R[STATE_VY][STATE_VY] = gKalmanFilter.R[STATE_VX][STATE_VX];
 
     // z-axis velocity isn't really a function of yaw-rate and hdop
     //gKalmanFilter.R[STATE_VZ][STATE_VZ] = gKalmanFilter.R[STATE_VX][STATE_VX];
-    gKalmanFilter.R[STATE_VZ][STATE_VZ] = (float)(0.1 * 0.1);
+    gKalmanFilter.R[STATE_VZ][STATE_VZ] = gEKFInputData.GPSVVelAcc * gEKFInputData.GPSVVelAcc;
 }
 
 

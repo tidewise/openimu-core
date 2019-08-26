@@ -86,8 +86,7 @@ typedef struct {
     
     uint32_t itow;
 
-    float GPSHorizAcc, GPSVertAcc;
-    float HDOP;
+    float GPSHorizAcc, GPSVertAcc, GPSHVelAcc, GPSVVelAcc;
 } EKF_InputDataStruct;
 
 extern EKF_InputDataStruct gEKFInputData;

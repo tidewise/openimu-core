@@ -198,7 +198,8 @@ void processUbloxPVTMessage(uint8_t      *msg,
 
     // Unused GPSData->GPSFix = ;
     GPSData->HDOP = ((float)decode_u2(payload + 76)) * 1e-2;
-    GPSData->GPSVelAcc = ((double)decode_u4(payload + 68)) * 1e-3;
+    GPSData->GPSHVelAcc = ((double)decode_u4(payload + 68)) * 1e-3;
+    GPSData->GPSVVelAcc = GPSData->GPSHVelAcc;
     // GPSData->GPSStatusWord = ;
     GPSData->GPSHorizAcc = ((double)decode_u4(payload + 40)) * 1e-3;
     GPSData->GPSVertAcc = ((double)decode_u4(payload + 44)) * 1e-3;

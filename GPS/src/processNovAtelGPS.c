@@ -241,12 +241,12 @@ void _parseBestPosB_Fast(logBestPosB   *bestPosB,
         GPSData->GPSFix = 0;// PosVelType
         gBitStatus.hwStatus.bit.unlockedInternalGPS = 1; // locked
         gBitStatus.swStatus.bit.noGPSTrackReference = 1; // no GPS track
-        gGpsDataPtr->HDOP = 21.0f; // force to above threshold
+        GPSData->HDOP = 21.0f; // force to above threshold
     } else {
         GPSData->GPSFix = bestPosB->pos_type;
         gBitStatus.hwStatus.bit.unlockedInternalGPS = 0; // locked
         gBitStatus.swStatus.bit.noGPSTrackReference = 0; // GPS track
-        gGpsDataPtr->HDOP = 1.0f; // force to below threshold
+        GPSData->HDOP = 1.0f; // force to below threshold
     }
 
     //0xFFFFFFFC = b11111111111111111111111111111100
@@ -281,6 +281,7 @@ void _parseBestPosB_Fast(logBestPosB   *bestPosB,
     // Accuracy measurements
     GPSData->GPSHorizAcc = sqrtf( bestPosB->lat_sigma * bestPosB->lat_sigma + bestPosB->lon_sigma * bestPosB->lon_sigma );    // [m]
     GPSData->GPSVertAcc  = bestPosB->hgt_sigma;     // [m]
+    GPSEstimateVelAcc(GPSData);
 
     GPSData->numSatelites = bestPosB->num_obs;
 }
