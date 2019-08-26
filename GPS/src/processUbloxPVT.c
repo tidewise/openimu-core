@@ -127,6 +127,11 @@ uint32_t decode_u4(uint8_t const* bytes)
            (((uint32_t)bytes[2]) << 16) |
            (((uint32_t)bytes[3]) << 24);
 }
+int16_t decode_i2(uint8_t const* bytes)
+{
+    uint16_t u2 = decode_u2(bytes);
+    return *(int16_t const*)(&u2);
+}
 int32_t decode_i4(uint8_t const* bytes)
 {
     uint32_t u4 = decode_u4(bytes);
@@ -203,6 +208,10 @@ void processUbloxPVTMessage(uint8_t      *msg,
     // GPSData->GPSStatusWord = ;
     GPSData->GPSHorizAcc = ((double)decode_u4(payload + 40)) * 1e-3;
     GPSData->GPSVertAcc = ((double)decode_u4(payload + 44)) * 1e-3;
+
+    GPSData->hasMagneticDeclination = true;
+    GPSData->magneticDeclination = ((double)decode_i2(payload + 88)) * 1e-2;
+    GPSData->magneticDeclinationAcc = ((double)decode_i2(payload + 90)) * 1e-2;
 
     GPSData->numSatelites = payload[23];
 }

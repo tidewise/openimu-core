@@ -123,6 +123,10 @@ typedef struct  {
     float                GPSHorizAcc;
     float                GPSVertAcc;
 
+    uint8_t              hasMagneticDeclination;
+    float                magneticDeclination;
+    float                magneticDeclinationAcc;
+
     int                  numSatelites;
 
 } GpsData_t;
