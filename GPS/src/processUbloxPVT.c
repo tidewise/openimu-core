@@ -125,7 +125,7 @@ uint32_t decode_u4(uint8_t const* bytes)
     return bytes[0] |
            (((uint32_t)bytes[1]) << 8) |
            (((uint32_t)bytes[2]) << 16) |
-           (((uint32_t)bytes[1]) << 24);
+           (((uint32_t)bytes[3]) << 24);
 }
 int32_t decode_i4(uint8_t const* bytes)
 {
