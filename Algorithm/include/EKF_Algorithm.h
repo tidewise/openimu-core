@@ -44,7 +44,7 @@ typedef struct {
 
     real R_BinN[NUM_AXIS][NUM_AXIS];   // 321-Rotation matrix
 
-    real quaternion[4],  measuredQuaternion[4], quaternion_Past[4];
+    real quaternion[4], quaternion_Past[4];
     real eulerAngles[NUM_AXIS], measuredEulerAngles[NUM_AXIS];
     real attitudeError[NUM_AXIS];
 
