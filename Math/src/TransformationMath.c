@@ -508,6 +508,12 @@ void GPS_PosVel_To_NED(void)
             gKalmanFilter.quaternion[Q1] = q[Q1];
             gKalmanFilter.quaternion[Q2] = q[Q2];
             gKalmanFilter.quaternion[Q3] = q[Q3];
+
+            AxV(&Q[0][0], &gKalmanFilter.quaternion_Past[0], 4, 4, &q[0]);
+            gKalmanFilter.quaternion_Past[Q0] = q[Q0];
+            gKalmanFilter.quaternion_Past[Q1] = q[Q1];
+            gKalmanFilter.quaternion_Past[Q2] = q[Q2];
+            gKalmanFilter.quaternion_Past[Q3] = q[Q3];
         }
     }
 }
