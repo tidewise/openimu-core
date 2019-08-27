@@ -427,6 +427,7 @@ static void _parseSiRFGeodeticNavMsg(char          *msg,
 
     // filtered down velocity
     GPSData->vNed[2] = avgDeltaSmoother(-((int16_t)byteSwap16(geo->climbRate) * 0.01), &downVelDelta);
+    GPSEstimateVelAcc(GPSData);
 
     GPSData->GPSmonth = geo->utcMonth; // mm
     GPSData->GPSday   = geo->utcDay;   // dd

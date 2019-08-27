@@ -77,7 +77,8 @@ typedef struct  {
     signed long          LonLatH[3]; // SiRF Lat Lon[deg] * 10^7 Alt ellipse [m]*100 <-- UNUSED
     char                 GPSFix;
     float                HDOP;       // Horizontal Dilution Of Precision x.x
-    double               GPSVelAcc;
+    float                GPSHVelAcc;
+    float                GPSVVelAcc;
     unsigned short       GPSStatusWord;  /// will replace GPSfix
     unsigned char        isGPSFWVerKnown;
     unsigned char        isGPSBaudrateKnown;
@@ -121,6 +122,10 @@ typedef struct  {
 
     float                GPSHorizAcc;
     float                GPSVertAcc;
+
+    uint8_t              hasMagneticDeclination;
+    float                magneticDeclination;
+    float                magneticDeclinationAcc;
 
     int                  numSatelites;
 

@@ -176,6 +176,7 @@ typedef struct {
 
 double avgDeltaSmoother(double in, gpsDeltaStruct* data);
 void   thresholdSmoother( double dataIn[3], float dataOut[3]);
+void GPSEstimateVelAcc(GpsData_t* gpsData);
 
 
 /// function prototypes

@@ -157,7 +157,12 @@ void TaskWorldMagneticModel(void const *argument)
     while(1) {
         OS_Delay( 5000 );
 #ifdef GPS
-        if( gGpsDataPtr->gpsValid )
+        if( gGpsDataPtr->hasMagneticDeclination ) {
+            gWorldMagModel.validSoln = true;
+            gWorldMagModel.timeOfLastSoln = gGpsDataPtr->itow;
+            gWorldMagModel.decl_rad = gGpsDataPtr->magneticDeclination * DEG_TO_RAD;
+        }
+        else if( gGpsDataPtr->gpsValid )
         {
             // caution - safety checks on the dates are fine, but we don't want
             // to rely on these hard-coded dates in operation

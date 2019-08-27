@@ -243,7 +243,7 @@ void LG_To_INS_Transition_Test(void)
 
             // If GPS output is valid (GPS providing data with a good signal lock)
             //   then perform calculations to determine if transition is possible
-            if (gGpsDataPtr->gpsValid) {
+            if (gGpsDataPtr->gpsValid && gWorldMagModel.validSoln) {
                 // Sync the algorithm and GPS ITOW
                 // JSM -- Use EKF input structure
                 gAlgorithm.itow = gGpsDataPtr->itow;
