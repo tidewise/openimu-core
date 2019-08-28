@@ -61,17 +61,17 @@ void TaskGps(void const *argument);
 #endif
 
 typedef struct  {
-    int                  gpsValid;   // 1 if data is valid
+    uint8_t              gpsValid;   // 1 if data is valid
     uint8_t              updateFlag;    // 1 if contains new data
     
     int                  latSign;    // latitude sign
     int                  lonSign;    // longitude sign 
     double               latitude;   // latitude ,  degrees 
     double               longitude;  // longitude,  degrees 
-    double                vNed[3];   // velocities,  m/s  NED (North East Down) x, y, z
-    double               trueCourse; // [deg]
-    double               rawGroundSpeed;    // NMEA kph, SiRf m/s - change to m/s
-    double               altitude;          // above mean sea level [m]
+    float                vNed[3];   // velocities,  m/s  NED (North East Down) x, y, z
+    float                trueCourse; // [deg]
+    float                rawGroundSpeed;    // NMEA kph, SiRf m/s - change to m/s
+    float                altitude;          // above mean sea level [m]
     double               GPSSecondFraction; 
     float                altEllipsoid; // [km] altitude above ellipsoid for WMM
 
