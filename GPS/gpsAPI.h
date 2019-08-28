@@ -63,6 +63,7 @@ void TaskGps(void const *argument);
 typedef struct  {
     uint8_t              gpsValid;   // 1 if data is valid
     uint8_t              updateFlag;    // 1 if contains new data
+    uint32_t             updateCount;
     
     int                  latSign;    // latitude sign
     int                  lonSign;    // longitude sign 
@@ -104,6 +105,9 @@ void  GetGPSData(gpsDataStruct_t *data);
 /** Whether the current GPS data is valid
  */
 uint8_t IsGPSValid();
+
+/** Return the count of valid GPS updates received so far */
+uint32_t GetGPSUpdateCount();
 
 /** Return the HDOP of the last received GPS reading */
 float GetGPSHDOP();
