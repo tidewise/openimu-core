@@ -236,6 +236,16 @@ int writeGps(uint8_t  *data, uint16_t len)
 
 }
 
+float GetGPSHDOP()
+{
+    return gGpsDataPtr->HDOP;
+}
+
+uint8_t IsGPSValid()
+{
+    return gGpsDataPtr->gpsValid;
+}
+
 uint16_t GetGPSOverflowCounter()
 {
     return gGpsDataPtr->overflowCounter;

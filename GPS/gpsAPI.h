@@ -101,6 +101,13 @@ extern gpsDataStruct_t gGPS;
  ******************************************************************************/
 void  GetGPSData(gpsDataStruct_t *data);
 
+/** Whether the current GPS data is valid
+ */
+uint8_t IsGPSValid();
+
+/** Return the HDOP of the last received GPS reading */
+float GetGPSHDOP();
+
 /** Return the number of bytes received on the GPS UART
  */
 uint32_t GetGPSRXCounter();
