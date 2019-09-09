@@ -355,7 +355,9 @@ void EKF_SetInputStruct(double *accels, double *rates, double *mags, gpsDataStru
     // ----- Input from the GPS goes here -----
     // Validity data
     gEKFInputData.gpsValid   = (BOOL)gps->gpsValid;
-    gEKFInputData.updateFlag = gps->updateFlag;
+    if (gps->updateFlag) {
+        gEKFInputData.updateFlag = true;
+    }
 
     // Lat/Lon/Alt data
     gEKFInputData.lat = gps->latitude;

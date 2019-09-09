@@ -124,7 +124,7 @@ updateCntr[0] = updateCntr[0] + 1;
                 runInsUpdate = 1;
 
                 // Reset 'new GPS data' flag
-                gEKFInputData.updateFlag = 0;
+                gEKFInputData.updateFlag = false;
 
                 // Sync the algorithm itow to the GPS value (may place this elsewhere)
                 gAlgorithm.itow = gEKFInputData.itow;

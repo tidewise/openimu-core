@@ -176,12 +176,12 @@ void processUbloxPVTMessage(uint8_t      *msg,
         return;
     }
 
-    GPSData->lat  = ((long double)decode_i4(payload + 28)) * 1e-7;
-    GPSData->lon  = ((long double)decode_i4(payload + 24)) * 1e-7;
+    GPSData->lat  = ((double)decode_i4(payload + 28)) * 1e-7;
+    GPSData->lon  = ((double)decode_i4(payload + 24)) * 1e-7;
     normalizeLatLon(GPSData); // fills the latSign/lonSign
-    GPSData->vNed[0]   = ((double)decode_i4(payload + 48)) * 1e-3;
-    GPSData->vNed[1]   = ((double)decode_i4(payload + 52)) * 1e-3;
-    GPSData->vNed[2]   = ((double)decode_i4(payload + 56)) * 1e-3;
+    GPSData->vNed[0]   = ((float)decode_i4(payload + 48)) * 1e-3;
+    GPSData->vNed[1]   = ((float)decode_i4(payload + 52)) * 1e-3;
+    GPSData->vNed[2]   = ((float)decode_i4(payload + 56)) * 1e-3;
     // Note: time-related fields are filled before the valid
     // test as we can have a time solution before we have
     // a position solution
@@ -191,27 +191,27 @@ void processUbloxPVTMessage(uint8_t      *msg,
     GPSData->totalGGA++;
     GPSData->totalVTG++;
 
-    GPSData->trueCourse = ((double)decode_i4(payload + 64)) * 1e-5;
-    GPSData->rawGroundSpeed = ((double)decode_i4(payload + 60)) * 1e-3;
+    GPSData->trueCourse = ((float)decode_i4(payload + 64)) * 1e-5;
+    GPSData->rawGroundSpeed = ((float)decode_i4(payload + 60)) * 1e-3;
 
-    GPSData->alt  = ((long double)decode_i4(payload + 36)) * 1e-3;
+    GPSData->alt  = ((float)decode_i4(payload + 36)) * 1e-3;
     GPSData->filteredAlt  = GPSData->alt;
-    GPSData->altEllipsoid = ((long double)decode_i4(payload + 32)) * 1e-3;
+    GPSData->altEllipsoid = ((float)decode_i4(payload + 32)) * 1e-3;
     // Note: time-related fields are filled before the valid
     // test as we can have a time solution before we have
     // a position solution
 
     // Unused GPSData->GPSFix = ;
     GPSData->HDOP = ((float)decode_u2(payload + 76)) * 1e-2;
-    GPSData->GPSHVelAcc = ((double)decode_u4(payload + 68)) * 1e-3;
+    GPSData->GPSHVelAcc = ((float)decode_u4(payload + 68)) * 1e-3;
     GPSData->GPSVVelAcc = GPSData->GPSHVelAcc;
     // GPSData->GPSStatusWord = ;
-    GPSData->GPSHorizAcc = ((double)decode_u4(payload + 40)) * 1e-3;
-    GPSData->GPSVertAcc = ((double)decode_u4(payload + 44)) * 1e-3;
+    GPSData->GPSHorizAcc = ((float)decode_u4(payload + 40)) * 1e-3;
+    GPSData->GPSVertAcc = ((float)decode_u4(payload + 44)) * 1e-3;
 
     GPSData->hasMagneticDeclination = true;
-    GPSData->magneticDeclination = ((double)decode_i2(payload + 88)) * 1e-2;
-    GPSData->magneticDeclinationAcc = ((double)decode_i2(payload + 90)) * 1e-2;
+    GPSData->magneticDeclination = ((float)decode_i2(payload + 88)) * 1e-2;
+    GPSData->magneticDeclinationAcc = ((float)decode_i2(payload + 90)) * 1e-2;
 
     GPSData->numSatelites = payload[23];
 }

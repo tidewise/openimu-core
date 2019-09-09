@@ -236,6 +236,21 @@ int writeGps(uint8_t  *data, uint16_t len)
 
 }
 
+float GetGPSHDOP()
+{
+    return gGpsDataPtr->HDOP;
+}
+
+uint32_t GetGPSUpdateCount()
+{
+    return gGPS.updateCount;
+}
+
+uint8_t IsGPSValid()
+{
+    return gGpsDataPtr->gpsValid;
+}
+
 uint16_t GetGPSOverflowCounter()
 {
     return gGpsDataPtr->overflowCounter;
@@ -257,6 +272,9 @@ void GetGPSData(gpsDataStruct_t *data)
     data->updateFlag        =  ( gGpsDataPtr->updateFlagForEachCall >> GOT_VTG_MSG ) & 0x00000001 &&
                                ( gGpsDataPtr->updateFlagForEachCall >> GOT_GGA_MSG ) & 0x00000001;
     gGpsDataPtr->updateFlagForEachCall &= 0xFFFFFFFD;
+    if (data->gpsValid && data->updateFlag) {
+        data->updateCount++;
+    }
 
     data->latitude          = (double)gGpsDataPtr->latSign * gGpsDataPtr->lat;
     data->longitude         = (double)gGpsDataPtr->lonSign * gGpsDataPtr->lon;

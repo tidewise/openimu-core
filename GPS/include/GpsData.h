@@ -48,20 +48,20 @@ typedef struct  {
     BOOL                 gpsValid;
     int                  latSign;
     int                  lonSign;
-    long double          lat; // concatinated from int components [deg.dec]
-    long double          lon;
-    double               vNed[3];    // NED North East Down [m/s] x, y, z
+    double          lat; // concatinated from int components [deg.dec]
+    double          lon;
+    float               vNed[3];    // NED North East Down [m/s] x, y, z
     uint32_t             itow;           ///< gps milisecond Interval Time Of Week
 
     int                  updateFlagForEachCall; /// changed to 16 bits
     int                  totalGGA;
     int                  totalVTG;
 
-    double               trueCourse; // [deg]
-    double               rawGroundSpeed; // m/s
+    float               trueCourse; // [deg]
+    float               rawGroundSpeed; // m/s
 
-    double               alt;          // above mean sea level [m]
-    double               filteredAlt; // FIXME should this be local?
+    float               alt;          // above mean sea level [m]
+    float               filteredAlt; // FIXME should this be local?
     float                altEllipsoid; // [km] altitude above ellipsoid for WMM
     uint8_t              GPSmonth;     // mm
     uint8_t              GPSday;       // dd
